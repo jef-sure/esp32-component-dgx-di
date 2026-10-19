@@ -1,0 +1,47 @@
+## IDF Component Manager Manifest File
+version: "0.0.1"
+description: "Touch input for DGX displays: the fingers of a touch panel as fingers of the display, turned with the screen; a calibration measured on the board; gestures in millimetres; buttons the program draws; a translucent game pad in a layer of DGX; a GSL3680 driver and any esp_lcd_touch panel"
+url: https://github.com/jef-sure/esp32-component-dgx-di
+repository: https://github.com/jef-sure/esp32-component-dgx-di.git
+documentation: https://github.com/jef-sure/esp32-component-dgx-di/blob/main/README.md
+issues: https://github.com/jef-sure/esp32-component-dgx-di/issues
+
+dependencies:
+  idf:
+    version: ">=5.3.0"  # esp_driver_i2c, the I2C master driver as its own component
+  jef-sure/dgx:
+    version: "^0.6.6"  # the screen a pointer and a touch are on; 0.6.6: the overlay layer of a screen, for the buttons on it
+
+tags:
+  - touch
+  - touchscreen
+  - input
+  - gestures
+  - gamepad
+  - calibration
+  - gsl3680
+  - esp_lcd_touch
+  - dgx
+
+maintainers:
+  - "Anton Petrusevich <anton.petrusevich.mobile@gmail.com>"
+
+license: MIT
+
+files:
+  include:
+    - "idf_component.yml"
+    - "CMakeLists.txt"
+    - "src/**/*.c"
+    - "include/**/*.h"
+    - "tools/**/*.py"
+    - "README.md"
+    - "CHANGES.md"
+    - "LICENSE"
+  exclude:
+    - "build/**"
+    - ".git/**"
+    - "test/host/build/**"
+    - "**/__pycache__/**"
+    - "docs/design-ru.md"    # internal
+    - "docs/decisions-ru.md" # internal

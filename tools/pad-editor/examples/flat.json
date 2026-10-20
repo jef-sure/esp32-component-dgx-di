@@ -1,0 +1,42 @@
+{
+    "format": "dgx-di-pad",
+    "version": 1,
+    "name": "flat",
+    "items": [
+        {"kind": "cross", "fromX": "start", "fromY": "end", "x": 300, "y": 300, "r": 200, "pictures": {
+            "normal": [{"shape": "circle", "x": 0, "y": 0, "r": 200, "color": "dark"}, {"shape": "rect", "x": -109, "y": -120, "r": 0, "w": 31, "h": 9, "color": "light"}, {"shape": "rect", "x": -120, "y": -109, "r": 0, "w": 9, "h": 31, "color": "light"}, {"shape": "rect", "x": 109, "y": -120, "r": 0, "w": 31, "h": 9, "color": "light"}, {"shape": "rect", "x": 120, "y": -109, "r": 0, "w": 9, "h": 31, "color": "light"}, {"shape": "rect", "x": -109, "y": 120, "r": 0, "w": 31, "h": 9, "color": "light"}, {"shape": "rect", "x": -120, "y": 109, "r": 0, "w": 9, "h": 31, "color": "light"}, {"shape": "rect", "x": 109, "y": 120, "r": 0, "w": 31, "h": 9, "color": "light"}, {"shape": "rect", "x": 120, "y": 109, "r": 0, "w": 9, "h": 31, "color": "light"}, {"shape": "rect", "x": 0, "y": 0, "r": 23, "w": 368, "h": 140, "color": "item"}, {"shape": "rect", "x": 0, "y": 0, "r": 23, "w": 140, "h": 368, "color": "item"}, {"shape": "line", "width": 9, "points": [[-114, -29], [-144, 0], [-114, 29]], "color": "#ffffff"}, {"shape": "line", "width": 9, "points": [[114, 29], [144, 0], [114, -29]], "color": "#ffffff"}, {"shape": "line", "width": 9, "points": [[29, -114], [0, -144], [-29, -114]], "color": "#ffffff"}, {"shape": "line", "width": 9, "points": [[-29, 114], [0, 144], [29, 114]], "color": "#ffffff"}, {"shape": "ring", "x": 0, "y": 0, "r": 30, "width": 4, "color": "dark"}],
+            "up": [{"shape": "rect", "x": 0, "y": -127, "r": 23, "w": 140, "h": 114, "color": "light"}, {"shape": "rect", "x": 0, "y": -82, "r": 0, "w": 140, "h": 23, "color": "light"}, {"shape": "line", "width": 9, "points": [[29, -114], [0, -144], [-29, -114]], "color": "#ffffff"}],
+            "down": [{"shape": "rect", "x": 0, "y": 127, "r": 23, "w": 140, "h": 114, "color": "light"}, {"shape": "rect", "x": 0, "y": 82, "r": 0, "w": 140, "h": 23, "color": "light"}, {"shape": "line", "width": 9, "points": [[-29, 114], [0, 144], [29, 114]], "color": "#ffffff"}],
+            "left": [{"shape": "rect", "x": -127, "y": 0, "r": 23, "w": 114, "h": 140, "color": "light"}, {"shape": "rect", "x": -82, "y": 0, "r": 0, "w": 23, "h": 140, "color": "light"}, {"shape": "line", "width": 9, "points": [[-114, -29], [-144, 0], [-114, 29]], "color": "#ffffff"}],
+            "right": [{"shape": "rect", "x": 127, "y": 0, "r": 23, "w": 114, "h": 140, "color": "light"}, {"shape": "rect", "x": 82, "y": 0, "r": 0, "w": 23, "h": 140, "color": "light"}, {"shape": "line", "width": 9, "points": [[114, 29], [144, 0], [114, -29]], "color": "#ffffff"}],
+            "upLeft": [{"shape": "rect", "x": -109, "y": -120, "r": 0, "w": 31, "h": 9, "color": "#ffffff"}, {"shape": "rect", "x": -120, "y": -109, "r": 0, "w": 9, "h": 31, "color": "#ffffff"}],
+            "upRight": [{"shape": "rect", "x": 109, "y": -120, "r": 0, "w": 31, "h": 9, "color": "#ffffff"}, {"shape": "rect", "x": 120, "y": -109, "r": 0, "w": 9, "h": 31, "color": "#ffffff"}],
+            "downLeft": [{"shape": "rect", "x": -109, "y": 120, "r": 0, "w": 31, "h": 9, "color": "#ffffff"}, {"shape": "rect", "x": -120, "y": 109, "r": 0, "w": 9, "h": 31, "color": "#ffffff"}],
+            "downRight": [{"shape": "rect", "x": 109, "y": 120, "r": 0, "w": 31, "h": 9, "color": "#ffffff"}, {"shape": "rect", "x": 120, "y": 109, "r": 0, "w": 9, "h": 31, "color": "#ffffff"}]
+        }},
+        {"kind": "button", "fromX": "end", "fromY": "end", "x": 300, "y": 220, "r": 70, "out": "A", "color": "#29cf29", "pictures": {
+            "normal": [{"shape": "circle", "x": 0, "y": 0, "r": 70, "color": "item"}],
+            "pressed": [{"shape": "circle", "x": 0, "y": 0, "r": 70, "color": "light"}]
+        }},
+        {"kind": "button", "fromX": "end", "fromY": "end", "x": 180, "y": 340, "r": 70, "out": "B", "color": "#de1818", "pictures": {
+            "normal": [{"shape": "circle", "x": 0, "y": 0, "r": 70, "color": "item"}],
+            "pressed": [{"shape": "circle", "x": 0, "y": 0, "r": 70, "color": "light"}]
+        }},
+        {"kind": "button", "fromX": "end", "fromY": "end", "x": 420, "y": 340, "r": 70, "out": "X", "color": "#2192ef", "pictures": {
+            "normal": [{"shape": "circle", "x": 0, "y": 0, "r": 70, "color": "item"}],
+            "pressed": [{"shape": "circle", "x": 0, "y": 0, "r": 70, "color": "light"}]
+        }},
+        {"kind": "button", "fromX": "end", "fromY": "end", "x": 300, "y": 460, "r": 70, "out": "Y", "color": "#efc721", "pictures": {
+            "normal": [{"shape": "circle", "x": 0, "y": 0, "r": 70, "color": "item"}],
+            "pressed": [{"shape": "circle", "x": 0, "y": 0, "r": 70, "color": "light"}]
+        }},
+        {"kind": "button", "fromX": "middle", "fromY": "end", "x": -150, "y": 120, "r": 50, "out": "BACK", "pictures": {
+            "normal": [{"shape": "circle", "x": 0, "y": 0, "r": 50, "color": "item"}, {"shape": "polygon", "points": [[17, -17], [17, 17], [-17, 0]], "color": "#ffffff"}],
+            "pressed": [{"shape": "circle", "x": 0, "y": 0, "r": 50, "color": "light"}, {"shape": "polygon", "points": [[17, -17], [17, 17], [-17, 0]], "color": "#ffffff"}]
+        }},
+        {"kind": "button", "fromX": "middle", "fromY": "end", "x": 150, "y": 120, "r": 50, "out": "START", "pictures": {
+            "normal": [{"shape": "circle", "x": 0, "y": 0, "r": 50, "color": "item"}, {"shape": "polygon", "points": [[-17, -17], [-17, 17], [17, 0]], "color": "#ffffff"}],
+            "pressed": [{"shape": "circle", "x": 0, "y": 0, "r": 50, "color": "light"}, {"shape": "polygon", "points": [[-17, -17], [-17, 17], [17, 0]], "color": "#ffffff"}]
+        }}
+    ]
+}

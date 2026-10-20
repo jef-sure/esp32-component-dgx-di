@@ -11,7 +11,8 @@
 #include "dgx_di.h"
 
 enum { AIMS_MAX = 25 }; /* a grid of 5 x 5 at most: the stack of a small chip's task holds it */
-enum { UP_MS = 60 };    /* up after so long at least: the 10" lost a finger held for 132 ms in one measure, never in another */
+enum { UP_MS = 30 };    /* up after so long at least: the 10" lost a finger held for 132 ms in one measure, never in another; not more, or two
+                           quick taps of a key are one (the 7" saw a lift of 40 ms between them) */
 
 /* the display in its own orientation, as a screen not turned */
 static dgx_screen_t own(int width, int height)

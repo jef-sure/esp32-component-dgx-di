@@ -1,5 +1,70 @@
 # Changes
 
+## 0.0.2 - 2026-10-20
+
+On DGX 0.6.6, as 0.0.1.
+
+- **A keyboard on the display** (`dgx_di_keyboard.h`). Opaque keys in a
+  band of the display, sized in millimetres, at the bottom in the middle or
+  at the top when the band would cover the program's field; drawn straight
+  on the display in batches of DGX, a key pressed drawn so. What the fingers
+  type comes out as code points, as from a keyboard of wires: characters,
+  U+0008 erase, U+000A done, U+001B cancel. A key types when let go inside
+  it, however long held, nothing when the finger is led out; fingers type
+  over one another; erase held types again and again; shift for one
+  character; pages. A finger on the band is the keyboard's, never the
+  program's first nor one of its rectangles. No layer, no PSRAM: 764 bytes
+  and the layout where it lies.
+- **Its layouts are data:** JSON, made in the keyboard editor
+  (`tools/keyboard-editor`, in the browser: a display chosen by its pixels
+  and millimetres, the layout drawn on it as DGX-DI draws it, its keys, rows,
+  pages, sizes and colors edited, typing tried), and a blob of it made by
+  `tools/keyboard_blob.py`, a file to embed or a C array, which the keyboard
+  opens and checks. The ready ones: `dgx_di_keyboard_digits` (a code) and
+  `dgx_di_keyboard_latin` (letters with shift, digits and signs).
+- **A pad of a layout made in an editor** (`dgx_di_pad_open`). Its items
+  and how each looks are JSON, made in the pad editor (`tools/pad-editor`,
+  in the browser: a display chosen by its pixels and millimetres, a game
+  made up under the pad, the layer mixed over it as DGX mixes it; items
+  dragged and resized, their kinds, buttons, places and colors; themes;
+  pictures drawn of shapes; fingers tried), and a blob of it made by
+  `tools/pad_blob.py`. Each item may have pictures of its own — a button's
+  normal and pressed, a cross's normal and an arm held each way, a stick's
+  well, knob and knob held — of circles, rings, rectangles with round
+  corners, convex polygons and lines drawn by hand, in tenths of a
+  millimetre, drawn by DGX in the pixels of the display it is opened on; a
+  shape's color its own, or the item's, lighter or darker. The layer's
+  colors are those the layout uses. Ready layouts as blobs: classic, flat,
+  twin. `dgx_di_pad_init` and `dgx_di_pad_classic` stay as they were.
+- **The editors begin of templates** (New): the pad editor of the pads of
+  the usual games (retro, super, arcade, shooter, platformer, racing, mini
+  for 2.8"), the keyboard editor of a phone's number, a number, hexadecimal,
+  Russian and German, besides DGX-DI's own layouts.
+- **A cross drawn as the flat skin of Delta draws one:** a plus with a
+  light rim, as the buttons have, round corners, a chevron on each arm and a
+  ring round its middle, where a finger holds no way; an arm held lighter,
+  its chevron white. The editor's themes have the chevrons too.
+- **A cross shows its diagonals:** it lies on a round plate, darker, all of
+  which a finger takes, with a bracket in each corner between two arms,
+  white while that diagonal is held (none on a cross of four ways). The
+  corners of a cross drawn as a plus were empty, and a finger there, which
+  holds both ways, did not look like it would (the 7-inch board's first try
+  told so). In pictures of their own, a cross has a corner held of each
+  diagonal besides its arms held.
+- **A button of a way has its chevron:** LEFT, RIGHT, UP and DOWN drawn by
+  default, and in the editor's themes, with a chevron as a cross's, as START,
+  BACK and HOME have their signs.
+- **A finger is up after 30 ms without it at least, not 60** (a
+  calibration's steadying): two quick taps of a key on the 7-inch board
+  lifted for 40 ms between them and were one. A panel that loses a finger
+  held for longer has that from its calibration anyway.
+- **A device's numbers of fingers are not taken blindly.** A read with a
+  number twice is torn and not taken; a point of one finger's number lying
+  on another finger, far from its own, is that finger's echo. The GT911 of
+  the 7-inch JC1060P470 tears a read so when one of two fingers goes up: the
+  finger going up seemed to leave from under the other, and a key held while
+  another was typed was not typed.
+
 ## 0.0.1 - 2026-10-19
 
 The first version. It stands on DGX 0.6.6.

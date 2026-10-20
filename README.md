@@ -21,11 +21,14 @@ What it gives:
 - rectangles: buttons the program draws itself, each finger held by the one
   it went down in;
 - a translucent game pad over a game, in a layer of DGX: a cross, buttons
-  and sticks, read as the buttons and axes of a real game pad;
+  and sticks, read as the buttons and axes of a real game pad; its layouts
+  and their pictures made in an editor in the browser;
+- a keyboard on the display, opaque in a band of it, typing code points as a
+  keyboard of wires does; its layouts made in an editor in the browser;
 - a driver of the Silead GSL3680, and any panel of ESP-IDF's `esp_lcd_touch`
   (GT911, FT5x06, CST816, XPT2046 and the rest).
 
-This is version 0.0.1, the first one. Its interfaces may still change.
+This is version 0.0.2. Its interfaces may still change.
 
 ## Contents
 
@@ -42,6 +45,9 @@ This is version 0.0.1, the first one. Its interfaces may still change.
   - [Buttons the program draws](#buttons-the-program-draws)
   - [A game pad over a game](#a-game-pad-over-a-game)
   - [A pad of your own](#a-pad-of-your-own)
+  - [A pad of pictures of your own](#a-pad-of-pictures-of-your-own)
+  - [A keyboard on the display](#a-keyboard-on-the-display)
+  - [A keyboard layout of your own](#a-keyboard-layout-of-your-own)
   - [Rotate the screen](#rotate-the-screen)
 - [Boards it was tried on](#boards-it-was-tried-on)
 - [How it fits together](#how-it-fits-together)
@@ -53,6 +59,7 @@ This is version 0.0.1, the first one. Its interfaces may still change.
   - [The touch](#the-touch)
   - [The rectangles](#the-rectangles)
   - [The pad](#the-pad)
+  - [The keyboard](#the-keyboard)
   - [Drivers](#drivers)
 - [Memory](#memory)
 - [Known gaps](#known-gaps)
@@ -66,14 +73,14 @@ DGX-DI is an ESP-IDF component, published in the ESP Component Registry as
 `jef-sure/dgx-di`. Add it to a project:
 
 ```sh
-idf.py add-dependency "jef-sure/dgx-di^0.0.1"
+idf.py add-dependency "jef-sure/dgx-di^0.0.2"
 ```
 
 or put it into `main/idf_component.yml` yourself:
 
 ```yaml
 dependencies:
-  jef-sure/dgx-di: "^0.0.1"
+  jef-sure/dgx-di: "^0.0.2"
 ```
 
 It brings DGX along (`jef-sure/dgx` 0.6.6 or a later 0.6: the pad needs the
@@ -156,7 +163,11 @@ dgx_di_pointer_init(&pointer, &panel.device, 0, screen);
   panel of more.
 - `numbered` says whether the driver's `track_id` stays with a finger while
   it is down (a GT911's does). Give `false` for a driver that gives none, and
-  the pointer follows the fingers by where they were.
+  the pointer follows the fingers by where they were. The numbers are not
+  taken blindly: a read with a number twice is not taken, and a point of one
+  finger's number lying on another finger, far from its own, is the other's.
+  The GT911 of the 7-inch board tears a read so when one of two fingers goes
+  up, and the finger going up would seem to leave from under the other.
 - The device's range is that of the driver's config: `0..x_max-1` and
   `0..y_max-1`.
 - Leave the driver's own `swap_xy`, `mirror_x` and `mirror_y` off. The
@@ -282,7 +293,8 @@ What it finds and keeps:
   that is pressed together;
 - **how to steady it**: near the glass a sensitive panel shows a finger
   before it is pressed, and loses a finger held now and then. The longest of
-  each makes `down_ms` and `up_ms`, and `up_ms` is 60 ms at least;
+  each makes `down_ms` and `up_ms`, and `up_ms` is 30 ms at least (two quick
+  taps of a key may lift for as little as 40 ms between them);
 - how far off the targets were without it and with it, for the record.
 
 Each target is taken where the median of its touches has it, over the last
@@ -431,7 +443,14 @@ dgx_vscreen8_to_screen16(screen, 0, 0, frame, lut, DGX_LUT_SCALE(4));
 The classic pad is a cross of 40 mm under the left thumb, 30 mm from the left
 and the bottom edges; A, B, X and Y of 14 mm in a diamond under the right
 thumb, coloured as on an Xbox pad (A green, B red, X blue, Y yellow); BACK and
-START of 10 mm at the bottom in the middle, marked with arrows.
+START of 10 mm at the bottom in the middle, marked with triangles. The cross
+is drawn as the flat skin of the Delta emulator draws one: a plus with a light
+rim, as the buttons have, a chevron on each arm and a ring round its middle,
+where a finger holds no way. It lies on a round plate, a little darker, all of
+which a finger takes, with a bracket in each corner between two arms: a finger
+there holds both ways, and that bracket turns white. An arm held turns
+lighter, its chevron white. A button of a way (LEFT, RIGHT, UP, DOWN) has a
+chevron too.
 
 A finger that goes down on an item of the pad is the pad's until it goes up:
 it is never the program's first finger and never holds a rectangle, so take
@@ -440,8 +459,10 @@ the pad before them. How a finger holds an item:
 - **a button** is held while the finger stays within one and a half of its
   radius from its middle;
 - **a cross** gives what is drawn under the finger: on an arm, that way; in a
-  corner between two arms, both (a diagonal); nothing near its middle. A
-  cross of `DGX_DI_PAD_FOUR` ways gives only the arm the finger is nearer;
+  corner between two arms, both (a diagonal), its corner's bracket lit; nothing
+  near its middle. Two fingers on two arms give both as well. A cross of
+  `DGX_DI_PAD_FOUR` ways gives only the arm the finger is nearer, and has no
+  brackets in its corners;
 - **a stick** gives two axes by how far the finger is from its middle, its
   whole travel at its rim, and past the rim the same way. A
   `DGX_DI_PAD_FLOATING` stick has its middle where the finger went down.
@@ -495,6 +516,162 @@ bit, a stick's is 0 for the left stick and 1 for the right. The color is
 RGB565, 0 for grey. Where two items meet, the first in the array has the
 finger. The items are kept, not copied.
 
+### A pad of pictures of your own
+
+A layout of a pad, its items and how each looks, is JSON, made in the pad
+editor: [tools/pad-editor](tools/pad-editor). Open its `index.html` in a
+browser; no server or build is needed.
+
+- Choose a display by its pixels and millimetres. Under the pad lies a game
+  made up (sky, hills, ground), or a plain color, or an image of your own,
+  and the pad lies over it translucent, mixed as DGX mixes a layer at the
+  alpha you set.
+- Drag an item by its middle and make it larger by its rim, a millimetre a
+  step. On the right are its kind, its button or stick, its place from an
+  edge or the middle, its radius and its color.
+- A theme gives every item pictures at once: Flat, Glass, Outline or Neon.
+  Default takes them away, and the items look as DGX-DI draws them by
+  itself.
+- Each item has pictures of its own: a button's normal and pressed; a
+  cross's normal, an arm held of each way and a corner held of each diagonal,
+  drawn over it; a stick's well, knob and knob held, the knob following the
+  finger. A picture is drawn of
+  shapes in millimetres from the item's middle: circles, rings, rectangles
+  with round corners, polygons, and lines drawn by hand. A shape's color is
+  its own, or the item's, lighter or darker. Pictures go to every item of
+  the kind, as large as each, and a cross's arms held are made of the one
+  up.
+- In Try the mouse is a finger: the buttons held and the axes show at the
+  bottom.
+- New begins of a template: DGX-DI's own layouts (classic, flat, twin) or the
+  pads of the usual games: retro (a cross, B and A), super (and the shoulders
+  LB and RB), arcade (a cross and six buttons), shooter (two sticks, LT and
+  RT), platformer (left and right, a jump and a shot), racing (left and right
+  to steer, LT and RT), and mini for a display of 2.8". A game that needs
+  fewer buttons has a layout without them: what is not in it is not drawn
+  and takes no finger.
+
+Save the JSON, and `tools/pad_blob.py` makes of it the blob DGX-DI opens:
+
+```sh
+python3 tools/pad_blob.py my_pad.json main/pad.bin
+```
+
+```c
+extern const uint8_t pad_start[] asm("_binary_pad_bin_start");
+extern const uint8_t pad_end[] asm("_binary_pad_bin_end");
+
+dgx_di_pad_open(&pad, screen, 217, 136, pad_start, pad_end - pad_start);
+dgx_di_pad_show(&pad, screen, 160);
+```
+
+DGX-DI draws the pictures with DGX's shapes in the pixels of the display it
+opens the pad on, so they are sharp at any density. A finger takes an item
+by its circle, whatever is drawn. The layer's colors are those the layout
+uses, up to 255. Ready layouts come as blobs: `dgx_di_pad_layout_classic`
+(the classic pad as above), `dgx_di_pad_layout_flat` (the same of plain
+shapes) and `dgx_di_pad_layout_twin` (a floating stick, A B X Y, LB and RB
+at the top corners, BACK and START, of glass). Their JSON is in the editor's
+`examples`.
+
+### A keyboard on the display
+
+When the program asks for text, a keyboard opens in a band of the display:
+opaque keys of a layout, sized in millimetres, at the bottom in the middle,
+or at the top when the band would cover the program's field. What the
+fingers type comes out as code points, as from a keyboard of wires:
+characters, `DGX_DI_KEY_ERASE` (U+0008), `DGX_DI_KEY_DONE` (U+000A) and
+`DGX_DI_KEY_CANCEL` (U+001B).
+
+```c
+#include "dgx_di_keyboard.h"
+
+static dgx_di_keyboard_t   kb;
+static const dgx_di_rect_t field = {.x = 20, .y = 90, .w = 984, .h = 60}; // where the program shows the text
+
+// asked for text: the Latin layout, on a display of 154 x 86 mm, its labels in the program's font
+dgx_di_keyboard_open(&kb, screen, 154, 86, dgx_di_keyboard_latin, dgx_di_keyboard_latin_size, font, &field);
+
+// each step: the read, then the keyboard, then the program's own fingers
+dgx_di_pointer_read(&pointer, now_ms);
+uint32_t  typed[8];
+const int n = dgx_di_keyboard_take(&kb, &pointer, now_ms, typed, 8);
+for (int i = 0; i < n; ++i) {
+    if (typed[i] == DGX_DI_KEY_ERASE) { /* the last character taken away */ }
+    else if (typed[i] == DGX_DI_KEY_DONE) { dgx_di_keyboard_close(&kb); /* the text is ready */ }
+    else if (typed[i] == DGX_DI_KEY_CANCEL) { dgx_di_keyboard_close(&kb); /* never mind */ }
+    else { /* a character: typed[i] is its code point */ }
+}
+```
+
+- It draws straight on the display, no layer: while it is open, its band
+  (`kb.x`, `kb.y`, `kb.w`, `kb.h`) is its own and the program draws nothing
+  there. After the program has drawn over it (cleared the screen),
+  `dgx_di_keyboard_draw()` draws it all again. Each drawing is one batch of
+  DGX, and a key pressed or let go draws only that key.
+- A key types when the finger is let go inside it, however long it was
+  held: a key is no button, whose long press takes its click away. A finger
+  led out of it and let go types nothing, as on a phone. Several fingers type
+  over one another. Erase held types again and again: from half a second on,
+  every 100 ms, and nothing more when let go. Shift is for the next
+  character; a key of a page shows another page of the layout.
+- A finger that goes down on the band is the keyboard's: never the
+  program's first finger nor one of its rectangles. Take the keyboard before
+  them, as a pad; the two are not shown together.
+- The labels are drawn in the program's DGX font (font2c makes one of any
+  TTF, Cyrillic too), the signs of erase, done, cancel and shift with
+  DGX's shapes, so no font needs them. A 16-bit display.
+- The ready layouts are `dgx_di_keyboard_digits` (a code: 1 to 9, erase,
+  0, done) and `dgx_di_keyboard_latin` (letters with shift, a page of
+  digits and signs; cancel, space, done).
+
+It needs no PSRAM and no layer: the struct is some 0.8 KB, the layout is
+read where it lies. The digits do on a CYD as well.
+
+### A keyboard layout of your own
+
+A layout is JSON, made in the keyboard editor:
+[tools/keyboard-editor](tools/keyboard-editor). Open its `index.html` in a
+browser; no server or build is needed. Choose a display by its pixels and
+millimetres, and the canvas shows the layout on it as DGX-DI draws it, in
+the same pixels. Change the keys, the rows and the pages, the sizes in
+millimetres and the colors; try typing with the mouse; save the JSON. The
+ready layouts are its `examples/digits.json` and `examples/latin.json`; New
+begins of them or of another template: a phone's number, a number with a
+sign and a point, hexadecimal, Russian (ЙЦУКЕН, digits and signs, Latin) and
+German (QWERTZ with ä ö ü ß). A language is a page, and a key of a page goes
+to it; a key types one character of any script, so the program's font must
+have the letters.
+
+`tools/keyboard_blob.py` makes of the JSON the blob DGX-DI opens, a file
+to embed or a C array:
+
+```sh
+python3 tools/keyboard_blob.py my_layout.json main/keys.kbd
+python3 tools/keyboard_blob.py --c my_keys my_layout.json main/my_keys.c
+```
+
+```c
+extern const uint8_t keys_start[] asm("_binary_keys_kbd_start");
+extern const uint8_t keys_end[] asm("_binary_keys_kbd_end");
+
+dgx_di_keyboard_open(&kb, screen, 154, 86, keys_start, keys_end - keys_start, font, &field);
+```
+
+The format of the JSON and of the blob is told in the tool. A blob not of
+the format, or a layout past the limits (4 pages, 5 rows, 48 keys a page),
+is refused.
+
+The labels are drawn in the font the program gives, so letters past ASCII
+need a font that has them. DGX makes one of any TTF with its `font2c` (in
+the DGX component, `font2c/`), a `.c` and a `.h` of the font:
+
+```sh
+cc font2c.c -o font2c $(pkg-config --cflags --libs freetype2)
+./font2c DejaVuSans.ttf 30 0x20 0x7e 0x401 0x401 0x410 0x44f 0x451 0x451  # ASCII and Russian
+./font2c DejaVuSans.ttf 30 0x20 0x7e 0xa0 0xff 0x20ac 0x20ac              # ASCII, ä ö ü ß and the rest of Latin-1, €
+```
+
 ### Rotate the screen
 
 Nothing to do: the pointer takes the orientation of the screen at every
@@ -502,8 +679,9 @@ read. The program turns the display with DGX, and the fingers turn with it.
 The size a touch was given in millimetres turns with it too.
 
 Rectangles are in pixels of the display as it stands, so the program gives
-them again for the new orientation, as it draws its buttons again. A pad is
-made for the display as it stands when it is made: free it and make it again.
+them again for the new orientation, as it draws its buttons again. A pad and
+a keyboard are made for the display as it stands when they are made: make
+them again.
 
 ## Boards it was tried on
 
@@ -538,14 +716,14 @@ an edge (9 mm) covers that.
      |             the fingers of the display: steadied, followed, turned with the screen
      +------------------+-------------------+
      v                  v                   v
-    pad            rectangles             touch
- claims its      the program's      the first finger:
-  fingers          buttons          gestures in mm
+ pad or keyboard    rectangles             touch
+ claim their      the program's      the first finger:
+   fingers          buttons          gestures in mm
 ```
 
-Each step of the program's loop reads the pointer, then takes the pad (it
-claims its fingers), then the rectangles, then the first finger for the
-touch:
+Each step of the program's loop reads the pointer, then takes the pad or the
+keyboard (they claim their fingers), then the rectangles, then the first
+finger for the touch:
 
 ```c
 dgx_di_pointer_read(&pointer, now_ms);
@@ -633,7 +811,7 @@ device began to see it); `since_ms`.
 | --- | --- |
 | `bool dgx_di_calibrate_measure(dgx_di_device_t *device, dgx_screen_t *screen, int rounds, dgx_di_calibration_t *calibration)` | Targets on the display, a finger on each, round after round; then the calibration of them all. `rounds = 0`: without end, logged. Blocks. |
 | `bool dgx_di_calibration_make(dgx_di_calibration_t *calibration, const dgx_di_device_t *device, int width, int height, const dgx_di_aim_t *aims, int count)` | A calibration from targets measured another way (`dgx_di_aim_t`: where meant on the display in its own orientation, where the device took it). `false`: fewer than 4, or all in a line. |
-| `void dgx_di_calibration_steady(dgx_di_calibration_t *calibration, int blink_ms, int gap_ms)` | How to steady the panel from how it blinked: down after the longest blink and a little more, up after the longest gap and a little more, 60 ms at least. |
+| `void dgx_di_calibration_steady(dgx_di_calibration_t *calibration, int blink_ms, int gap_ms)` | How to steady the panel from how it blinked: down after the longest blink and a little more, up after the longest gap and a little more, 30 ms at least. |
 | `int dgx_di_calibration_text(const dgx_di_calibration_t *calibration, char *text, size_t size)` | The calibration in words, one paragraph of English under 400 characters. As `snprintf`. |
 | `int dgx_di_calibration_code(const dgx_di_calibration_t *calibration, char *text, size_t size)` | The calibration as C, an initializer to paste (some 470 characters). As `snprintf`. |
 
@@ -685,6 +863,7 @@ before), `DGX_DI_RECT_LONG` (held long inside, told once),
 | Function | What it does |
 | --- | --- |
 | `bool dgx_di_pad_init(dgx_di_pad_t *pad, const dgx_screen_t *display, int width_mm, int height_mm, const dgx_di_pad_item_t *items, int count)` | A pad of these items on the display as it stands, measured in millimetres: its layer and mask made and drawn. `false`: no memory, or more than 124 items. |
+| `bool dgx_di_pad_open(dgx_di_pad_t *pad, const dgx_screen_t *display, int width_mm, int height_mm, const uint8_t *layout, size_t size)` | A pad of a layout, a blob of `tools/pad_blob.py` (kept): its items made, drawn by their pictures. `false`: no memory, no such blob, or one past the limits. |
 | `bool dgx_di_pad_show(dgx_di_pad_t *pad, dgx_screen_t *display, uint8_t alpha)` | Laid over the display, `alpha` 0..255 how much of its colors over the picture (160: well seen, the game too). |
 | `void dgx_di_pad_hide(dgx_di_pad_t *pad, dgx_screen_t *display)` | Taken off the display, its place marked to be sent again. |
 | `void dgx_di_pad_free(dgx_di_pad_t *pad, dgx_screen_t *display)` | Its layer and mask given back, hidden first. |
@@ -696,13 +875,35 @@ before), `DGX_DI_RECT_LONG` (held long inside, told once),
 `DGX_DI_FROM_MIDDLE`, `DGX_DI_FROM_END`); `ways` (`DGX_DI_PAD_FOUR` for a
 cross, `DGX_DI_PAD_FLOATING` for a stick); `x`, `y`, `r` in tenths of a
 millimetre; `out`; `color`. `dgx_di_pad_classic` and `DGX_DI_PAD_CLASSIC`
-(7): the classic pad.
+(7): the classic pad. The blobs `dgx_di_pad_layout_classic`,
+`dgx_di_pad_layout_flat` and `dgx_di_pad_layout_twin`, with `_size`.
+`tools/pad_blob.py layout.json out.pad`, `--c NAME layout.json out.c`: a
+layout of the pad editor as a blob, a file or a C array.
 
 `dgx_di_pad_t`: `buttons`, `pressed`, `released` (`DGX_DI_PAD_LEFT`, `RIGHT`,
 `UP`, `DOWN`, `A`, `START`, `BACK`, `B`, `X`, `Y`, `HOME`, `LB`, `RB`, `LT`,
 `RT`, `L3`, `R3`: bits 0 to 16); `axes[DGX_DI_AXES]` (`DGX_DI_AXIS_LX`, `LY`,
 `RX`, `RY`, from -32767 to 32767; `LT`, `RT`, from 0); `places` (each item in
 pixels: `x`, `y`, `r`).
+
+### The keyboard
+
+`dgx_di_keyboard.h`.
+
+| Function | What it does |
+| --- | --- |
+| `bool dgx_di_keyboard_open(dgx_di_keyboard_t *kb, dgx_screen_t *display, int width_mm, int height_mm, const uint8_t *layout, size_t size, dgx_font_t *font, const dgx_di_rect_t *field)` | The keyboard of a layout (a blob, kept) opened on the display as it stands, placed away from the field (may be `NULL`) and drawn. `false`, nothing drawn: no such blob, past the limits, does not fit, not a 16-bit display. |
+| `int dgx_di_keyboard_take(dgx_di_keyboard_t *kb, dgx_di_pointer_t *pointer, uint32_t now_ms, uint32_t *typed, int max)` | The fingers of the last read taken: those on the band claimed, keys drawn pressed, keys let go typed. The code points since the last take into `typed`, at most `max` (the rest stay); how many. |
+| `void dgx_di_keyboard_draw(dgx_di_keyboard_t *kb)` | All of it drawn again. |
+| `void dgx_di_keyboard_close(dgx_di_keyboard_t *kb)` | Closed: its band the program's again. |
+
+`dgx_di_keyboard_t`: `x`, `y`, `w`, `h` (its band); `page`, `shift`; `open`.
+The code points of editing: `DGX_DI_KEY_ERASE`, `DGX_DI_KEY_DONE`,
+`DGX_DI_KEY_CANCEL`. The ready layouts: `dgx_di_keyboard_digits` and
+`dgx_di_keyboard_latin`, with `_size`.
+
+`tools/keyboard_blob.py layout.json out.kbd`, `--c NAME layout.json out.c`:
+a layout of the editor as a blob, a file or a C array.
 
 ### Drivers
 
@@ -726,12 +927,19 @@ On a 32-bit chip:
 | a touch | 32 bytes |
 | rectangles | 80 bytes, and 10 bytes a rectangle in the program's array |
 | a calibration | 84 bytes, read where it lies (flash, as a constant) |
-| a pad | 100 bytes, 16 an item, and a byte a pixel of the display for its layer and as much for its mask |
+| a pad | 120 bytes, 24 an item and 512 of its colors, a byte a pixel of the display for its layer and as much for its mask; a blob's items 20 bytes each, its pictures read where they lie |
+| a keyboard | 764 bytes; its layout read where it lies (flash) |
 | the measure of a board | some 3 KB of the stack and 2 KB of the heap while it runs |
 
 ## Known gaps
 
-- No on-screen keyboard yet, and no editor of a pad's layout.
+- The keyboard's ready layouts are Latin and a code; Russian and German are
+  templates of its editor, made blobs by its tool. No keys of another
+  character on a long press, no picture of the key over the finger. Its
+  themes are colors, not pictures.
+- A pad's pictures are of shapes (circles, rings, rectangles, convex
+  polygons, lines), not of pixels; the pictures of two items should not
+  overlap.
 - Gestures are those of one finger, the first. There is no pinch.
 - `DGX_DI_RECT_FORCED` is set by no panel yet.
 - A pad does not follow a display turned after it was made.
@@ -756,7 +964,7 @@ another). They check:
 
 - the pointer: the corners of a turned 10-inch panel, every flag, ranges,
   scaling, the calibration, the screen turned, fingers by the panel's numbers
-  and by nearness, steadying in milliseconds, the point of a press, the first
+  (reads torn as a GT911 tears them, echoes) and by nearness, steadying in milliseconds, the point of a press, the first
   finger and the fingers claimed;
 - the making of a calibration: a made-up panel lying each of the 8 ways,
   skewed and bent, the flags found and the targets where they were meant;
@@ -766,9 +974,28 @@ another). They check:
   the finger claimed, a button within its reach, every way of a cross and its
   diagonals, a cross of four ways, sticks fixed and floating, past the rim,
   an item pressed drawn again and its neighbour not, pixels that are not
-  square, shown and hidden;
+  square, shown and hidden; the cross as it is drawn (its plate, rim,
+  chevrons, ring and brackets, at rest and held) and the chevrons of the
+  buttons of a way; of blobs, the classic one as the C one pixel for pixel,
+  pictures pressed and held, a knob past its well, close neighbours whole,
+  blobs not of the format refused;
 - the gestures: edges, swipes, a long press, one gesture a touch, in
-  millimetres.
+  millimetres;
+- the keyboard, with DGX built for the host: its band and keys from
+  millimetres, a key typed when let go inside it however long held, nothing
+  when led out,
+  erase again and again when held, shift, pages, fingers over one another
+  and claimed, the band at the top over the field, blobs not of the format
+  refused, the keys drawn and pressed.
+
+With Python they make the ready keyboards and pads again of their JSON and
+compare them with `src/dgx_di_keyboard_layouts.c` and
+`src/dgx_di_pad_layouts.c`; with Node, they compare the editors' geometry
+with the C's on several displays, and the pad editor's colors with DGX's
+mixing (`tools/keyboard-editor/test.js`, `tools/pad-editor/test.js`), and
+with both they check the editors' templates: nothing wrong on the displays
+they are for, and the tools make blobs of them. Each editor's actions, the
+mouse's too, are tested by its `test.html`, opened in a browser.
 
 ## Repository layout
 
@@ -776,10 +1003,15 @@ another). They check:
 include/dgx_di.h                the device, the pointer, the calibration, the touch, the rectangles
 include/dgx_di_calibrate.h      the measure of a board
 include/dgx_di_pad.h            the game pad
+include/dgx_di_keyboard.h       the keyboard
 include/dgx_di_gsl3680.h        the GSL3680 driver
 include/dgx_di_esp_lcd_touch.h  a panel of esp_lcd_touch as a device (static inline)
-src/                            their sources
+src/                            their sources; dgx_di_keyboard_layouts.c and dgx_di_pad_layouts.c, the ready layouts as blobs
 tools/gsl_firmware.py           a vendor's GSL firmware as data for the driver
+tools/keyboard_blob.py          a keyboard layout's JSON as the blob the keyboard opens
+tools/keyboard-editor/          the editor of keyboard layouts (index.html), the ready ones in examples/
+tools/pad_blob.py               a pad layout's JSON as the blob the pad opens
+tools/pad-editor/               the editor of pad layouts and their pictures (index.html), the ready ones in examples/
 test/host/                      the host tests
 ```
 

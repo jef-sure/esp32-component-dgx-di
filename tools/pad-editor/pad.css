@@ -1,0 +1,274 @@
+/* the workbench: the tools, the display, the picture of an item under it, the properties, the line of state */
+html, body {
+    height: 100%;
+    overflow: hidden;
+}
+
+.pd-bench {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+        "top top"
+        "main side"
+        "status status";
+    height: 100vh;
+    gap: 3px;
+    padding: 3px;
+    box-sizing: border-box;
+    background: #e9ebef;
+    font-size: 0.95em;
+}
+
+.pd-bench.pd-with-picture {
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    grid-template-areas:
+        "top top"
+        "main side"
+        "strip side"
+        "status status";
+}
+
+.pd-dragging {
+    outline: 3px dashed #0d6efd;
+    outline-offset: -3px;
+}
+
+.pd-top {
+    grid-area: top;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 6px;
+    background: #fff;
+    border-radius: 4px;
+}
+
+.pd-sep {
+    width: 1px;
+    height: 24px;
+    background: #ccd;
+    margin: 0 4px;
+}
+
+.pd-zoom {
+    width: auto;
+}
+
+.pd-main {
+    grid-area: main;
+    display: flex;
+    min-height: 0;
+    background: #fff;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+.pd-canvas-box {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 6px;
+    background: #3a3f47;
+}
+
+.pd-canvas {
+    image-rendering: pixelated;
+    cursor: pointer;
+}
+
+.pd-canvas.pd-fit {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.pd-strip {
+    grid-area: strip;
+    background: #fff;
+    border-radius: 4px;
+    padding: 4px 6px;
+}
+
+.pd-picture-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.pd-picture-body {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.pd-tools {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: 120px;
+}
+
+.pd-picture-canvas {
+    width: 300px;
+    height: 300px;
+    border: 1px solid #889;
+    cursor: crosshair;
+}
+
+.pd-shapes {
+    flex: 1;
+    max-height: 300px;
+    overflow: auto;
+    font-size: 0.9em;
+}
+
+.pd-shape,
+.pd-item {
+    padding: 1px 4px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.pd-shape.chosen,
+.pd-item.chosen {
+    background: #cfe2ff;
+}
+
+.pd-side {
+    grid-area: side;
+    overflow: auto;
+    background: #fff;
+    border-radius: 4px;
+    padding: 6px 8px;
+}
+
+.pd-props section {
+    border-bottom: 1px solid #e3e5ea;
+    padding: 4px 0 8px;
+}
+
+.pd-props h6 {
+    margin: 4px 0;
+    font-weight: 600;
+}
+
+.pd-props label,
+.pd-picture label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.9em;
+    margin: 2px 0;
+}
+
+.pd-props label input,
+.pd-props label select {
+    min-width: 0;
+}
+
+.pd-grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 8px;
+}
+
+.pd-grid2 label {
+    flex-wrap: wrap;
+}
+
+.pd-row {
+    width: 100%;
+}
+
+.pd-dims {
+    display: grid;
+    grid-template-columns: 2.2em 1fr 1em 1fr;
+    align-items: center;
+    gap: 4px;
+    margin: 2px 0;
+    font-size: 0.9em;
+}
+
+.pd-items {
+    max-height: 180px;
+    overflow: auto;
+    font-size: 0.9em;
+}
+
+.pd-note {
+    color: #778;
+    font-size: 0.85em;
+    font-weight: normal;
+}
+
+.pd-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+
+.pd-presets .btn {
+    padding: 1px 6px;
+}
+
+.pd-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 12px;
+    border: 1px solid #889;
+    border-radius: 2px;
+    vertical-align: middle;
+    margin-right: 4px;
+}
+
+.pd-problem {
+    font-size: 0.85em;
+    margin: 2px 0;
+}
+
+.pd-error {
+    color: #b02a37;
+}
+
+.pd-warning {
+    color: #9a5b00;
+}
+
+.pd-status {
+    grid-area: status;
+    display: flex;
+    gap: 12px;
+    padding: 2px 8px;
+    background: #fff;
+    border-radius: 4px;
+    font-size: 0.85em;
+    color: #445;
+}
+
+.pd-top .pd-row {
+    width: auto;
+}
+
+.pd-top .pd-row input {
+    width: 160px;
+}
+
+/* the menu of templates under New */
+.pd-templates {
+    top: 100%;
+    left: 0;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.pd-about {
+    color: #778;
+    font-size: 0.85em;
+}

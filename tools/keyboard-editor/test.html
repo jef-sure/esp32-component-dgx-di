@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>DGX-DI keyboard editor: its test</title>
+    <link rel="stylesheet" href="https://unpkg.com/bootstrap@5.1.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="keyboard.css">
+    <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vue-demi@0.14.10/lib/index.iife.js"></script>
+    <script src="https://unpkg.com/pinia@2.3.1/dist/pinia.iife.js"></script>
+    <script src="Layout.js"></script>
+    <script src="Store.js"></script>
+    <script src="KeyboardCanvas.js"></script>
+    <script src="KeyboardProps.js"></script>
+    <script src="KeyboardEdit.js"></script>
+</head>
+
+<body>
+    <!-- The editor's actions on the layout it begins with, the workbench drawn meanwhile; what the browser keeps of it is
+         put back after. Open it in a browser: the line on top says how it went (and the console). -->
+    <div id="verdict" style="font: bold 20px sans-serif; padding: 6px">…</div>
+    <div id="vue-app"></div>
+    <script src="keyboard-app.js"> </script>
+    <script>
+        const fails = [], kept = localStorage.getItem(StorageKey);
+        const ok = (cond, what) => { if (!cond) fails.push(what); };
+        // the mouse on the display at a pixel of it
+        const mouse = (el, type, x, y) => {
+            const r = el.getBoundingClientRect(), k = r.width / el.width;
+            el.dispatchEvent(new MouseEvent(type, { bubbles: true, clientX: r.left + x * k, clientY: r.top + y * k }));
+        };
+        const wait = ms => new Promise(done => setTimeout(done, ms));
+        (async () => {
+        try {
+            const s = useKeyboardStore(), L = KeyboardLayout;
+            s.replace(L.starter());
+            s.setDisplay(L.Displays[0]);
+            s.edit.field = 'top', s.edit.mode = 'edit';
+            s.showPage(0);
+            ok(s.band && s.band.x === 289 && s.band.y === 262 && s.band.w === 445 && s.band.h === 338, 'the code on the 7": as DGX-DI places it');
+            ok(s.keys.length === 12 && s.keys[0].w === 133, 'its keys');
+            // a key changed, undone, redone
+            s.choose(0, 0);
+            s.setKey({ char: 'z', upper: 'Z' });
+            ok(s.layout.pages[0].rows[0][0].char === 'z', 'a key changed');
+            s.undo();
+            ok(s.layout.pages[0].rows[0][0].char === '1', 'undone');
+            s.redo();
+            ok(s.layout.pages[0].rows[0][0].upper === 'Z', 'redone');
+            s.undo();
+            // keys and rows added, moved, taken away
+            s.addKey(true);
+            ok(s.layout.pages[0].rows[0].length === 4 && s.edit.key === 1 && s.layout.pages[0].rows[0][1].char === '?', 'a key added after the chosen');
+            s.moveKey(1);
+            ok(s.layout.pages[0].rows[0][2].char === '?' && s.edit.key === 2, 'moved to the right');
+            s.removeKey();
+            ok(s.layout.pages[0].rows[0].length === 3, 'taken away');
+            s.addRow(true);
+            ok(s.layout.pages[0].rows.length === 5 && s.edit.row === 1, 'a row added below');
+            s.moveRow(-1);
+            ok(s.edit.row === 0 && s.layout.pages[0].rows[0].length === 1, 'moved up');
+            s.removeRow();
+            ok(s.layout.pages[0].rows.length === 4, 'the row taken away');
+            // pages: one after the first; a key to it; another between them, the key following its page
+            s.addPage();
+            ok(s.layout.pages.length === 2 && s.edit.page === 1 && s.layout.pages[1].rows[0][0].page === 0, 'a page with a key back');
+            s.showPage(0), s.choose(3, 0);
+            s.setKey({ action: undefined, page: 1, label: 'next' });
+            ok(s.layout.pages[0].rows[3][0].page === 1 && L.label(s.layout.pages[0].rows[3][0], false) === 'next', 'a key of a page');
+            s.showPage(0);
+            s.addPage();
+            ok(s.layout.pages.length === 3 && s.layout.pages[0].rows[3][0].page === 2, 'a page put between: the key follows its page');
+            s.removePage();
+            ok(s.layout.pages.length === 2 && s.layout.pages[0].rows[3][0].page === 1, 'taken away: the key back');
+            // the trial, as DGX-DI types
+            s.edit.mode = 'try', s.trial.page = 0;
+            const find = pred => s.keys.findIndex(k => pred(k.key));
+            s.type(find(k => k.char === '1')), s.type(find(k => k.char === '2'));
+            ok(s.trial.text === '12', 'typed');
+            s.type(find(k => k.page === 1));
+            ok(s.trial.page === 1 && s.keys.length === 2, 'to the other page');
+            s.type(find(k => k.page === 0));
+            s.type(find(k => k.action === 'done'));
+            ok(s.trial.flash === 'done' && s.trial.text === '12', 'done');
+            s.edit.mode = 'edit';
+            // not taken: a display too narrow, a file not of the format, not JSON
+            s.setDisplay({ name: 'tiny', width: 40, height: 600, widthMm: 6, heightMm: 86 });
+            ok(!s.band && s.problems.some(p => p.level === 'error'), 'a display too narrow told');
+            s.setDisplay(L.Displays[0]);
+            const pages = s.layout.pages.length;
+            s.open('{"format": "other"}', 'other.json');
+            ok(s.layout.pages.length === pages && /not a layout/.test(s.message), 'a file of another format refused');
+            s.open('{', 'broken.json');
+            ok(/not JSON/.test(s.message), 'not JSON refused');
+            // the file: as the format has it, read back the same
+            const text = L.toJson(s.layout);
+            s.open(text, 'again.json');
+            ok(L.toJson(s.layout) === text && !L.check(JSON.parse(text)), 'written and read back the same');
+            s.newLayout();
+            ok(s.layout.pages.length === 1 && s.layout.pages[0].rows.length === 4, 'a new layout');
+            // the mouse: a key chosen by a click; tried, typed when let go on it, erase held again and again
+            s.edit.mode = 'edit', s.edit.zoom = 1;
+            await Vue.nextTick();
+            const canvas = document.querySelector('.kb-canvas'), key = i => s.keys[i], mid = i => [key(i).x + key(i).w / 2, key(i).y + key(i).h / 2];
+            mouse(canvas, 'mousedown', ...mid(4)), mouse(canvas, 'mouseup', ...mid(4));
+            ok(s.edit.row === 1 && s.edit.key === 1, 'the key 5 chosen by a click');
+            s.edit.mode = 'try', s.trial.text = '';
+            await Vue.nextTick();
+            mouse(canvas, 'mousedown', ...mid(0)), mouse(canvas, 'mouseup', ...mid(0));
+            mouse(canvas, 'mousedown', ...mid(1)), mouse(canvas, 'mouseleave', 0, 0);
+            ok(s.trial.text === '1', 'typed when let go on it, not when led away');
+            s.trial.text = '123456';
+            mouse(canvas, 'mousedown', ...mid(9));
+            await wait(800);
+            mouse(canvas, 'mouseup', ...mid(9));
+            ok(s.trial.text.length <= 3 && s.trial.text.length >= 1, 'erase held: again and again (' + s.trial.text + ')');
+            s.edit.mode = 'edit';
+            // the menu of templates: opened by New, one chosen, undone as one, closed by a click elsewhere; each laid out
+            await Vue.nextTick();
+            const newButton = [...document.querySelectorAll('.kb-top button')].find(b => b.textContent.trim() === 'New');
+            newButton.click();
+            await Vue.nextTick();
+            const menu = document.querySelector('.kb-templates'), entries = [...menu.querySelectorAll('.dropdown-item')];
+            ok(menu.classList.contains('show') && entries.length === L.Templates.length, 'the menu of templates');
+            entries.find(a => a.textContent.includes('Russian')).click();
+            await Vue.nextTick();
+            ok(!menu.classList.contains('show') && s.layout.pages.length === 3 && s.keys[0].key.char === 'й', 'a template chosen: ЙЦУКЕН');
+            s.undo();
+            ok(s.layout.pages.length !== 3, 'undone');
+            newButton.click();
+            await Vue.nextTick();
+            document.querySelector('.kb-status').dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+            await Vue.nextTick();
+            ok(!menu.classList.contains('show'), 'closed by a click elsewhere');
+            for (const t of L.Templates) {
+                s.newLayout(t.name);
+                await Vue.nextTick();
+                ok(s.band && s.keys.length > 0, t.name + ': laid out');
+            }
+        } catch (e) {
+            fails.push('thrown: ' + e.stack);
+        }
+        if (kept === null) localStorage.removeItem(StorageKey);
+        else localStorage.setItem(StorageKey, kept);
+        const verdict = fails.length ? 'EDITOR FAILED: ' + fails.join('; ') : 'EDITOR OK';
+        document.getElementById('verdict').textContent = verdict;
+        document.getElementById('verdict').style.color = fails.length ? '#b02a37' : '#146c43';
+        console.log(verdict);
+        })();
+    </script>
+</body>
+
+</html>

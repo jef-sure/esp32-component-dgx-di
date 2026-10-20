@@ -296,6 +296,74 @@ int main(void)
     }
 
     /*
+     * a device that numbers its fingers tearing a read as one goes up (the GT911 of the 7" Guition, as logged: a on its
+     * key, b down, then two points of a's number, both at b, then b alone): the read of a number twice not taken; a point
+     * of a's number on b, far from a, b's echo: b's, or none's when b has its own; a goes up where it was
+     */
+    {
+        fake_t       f = fake(0, 1023, 0, 599);
+        dgx_screen_t s = screen(1024, 600, LR, TB, false);
+        dgx_di_pointer_init(&p, &f.device, 0, &s);
+        dgx_di_pointer_debounce(&p, 0, 30);
+        f.n = 1, f.points[0] = point(112, 412, 0);
+        dgx_di_pointer_read(&p, 0);
+        f.n = 2, f.points[1] = point(603, 475, 1);
+        dgx_di_pointer_read(&p, 10);
+        const dgx_di_finger_t *a = finger(&p, 0), *b = finger(&p, 1);
+        CHECK(a && b && a->down && b->down && b->pressed);
+        f.points[0] = point(624, 475, 0), f.points[1] = point(603, 475, 0); /* torn */
+        CHECK(dgx_di_pointer_read(&p, 20) == 2 && a->x == 112 && a->y == 412 && a->sees && b->x == 603 && !a->released && !b->pressed);
+        for (int i = 0; i < DGX_DI_FINGERS; ++i) CHECK(!p.fingers[i].pressed && (p.fingers[i].down || !p.fingers[i].sees || &p.fingers[i] == a || &p.fingers[i] == b));
+        f.n = 1, f.points[0] = point(603, 475, 1);
+        dgx_di_pointer_read(&p, 30), dgx_di_pointer_read(&p, 40);
+        CHECK(!a->sees && a->down); /* steadied: not up yet */
+        dgx_di_pointer_read(&p, 60);
+        CHECK(a->released && a->x == 112 && a->y == 412 && b->down); /* up where it was, b held */
+        f.n = 0, dgx_di_pointer_read(&p, 70), dgx_di_pointer_read(&p, 100);
+        CHECK(b->released && b->x == 603);
+        /* the echo alone: a's number on b, b's own point missing; then b's own: b throughout, a up where it was */
+        f.n = 1, f.points[0] = point(112, 412, 0);
+        dgx_di_pointer_read(&p, 200);
+        f.n = 2, f.points[1] = point(603, 475, 1);
+        dgx_di_pointer_read(&p, 210);
+        a = finger(&p, 0), b = finger(&p, 1);
+        f.n = 1, f.points[0] = point(610, 470, 0);
+        dgx_di_pointer_read(&p, 220);
+        CHECK(!a->sees && b->sees && b->x == 610 && b->y == 470 && !b->pressed);
+        f.points[0] = point(604, 476, 1);
+        dgx_di_pointer_read(&p, 230), dgx_di_pointer_read(&p, 260);
+        CHECK(a->released && a->x == 112 && a->y == 412 && b->down && b->x == 604);
+        /* the echo with b's own point beside it, in either order: none's */
+        f.n = 0, dgx_di_pointer_read(&p, 300), dgx_di_pointer_read(&p, 340);
+        f.n = 1, f.points[0] = point(112, 412, 0);
+        dgx_di_pointer_read(&p, 400);
+        f.n = 2, f.points[1] = point(603, 475, 1);
+        dgx_di_pointer_read(&p, 410);
+        a = finger(&p, 0), b = finger(&p, 1);
+        f.points[0] = point(615, 470, 0), f.points[1] = point(603, 475, 1);
+        dgx_di_pointer_read(&p, 420);
+        CHECK(!a->sees && b->sees && b->x == 603);
+        f.points[0] = point(603, 476, 1), f.points[1] = point(616, 471, 0);
+        dgx_di_pointer_read(&p, 430);
+        CHECK(!a->sees && b->sees && b->x == 603 && b->y == 476);
+        for (int i = 0; i < DGX_DI_FINGERS; ++i) CHECK(&p.fingers[i] == a || &p.fingers[i] == b || !p.fingers[i].sees); /* no new finger of it */
+        /* two fingers close together (closer than fingers come), each a little moved: each its own, near its own place */
+        f.n = 0, dgx_di_pointer_read(&p, 440), dgx_di_pointer_read(&p, 480);
+        f.n = 2, f.points[0] = point(500, 300, 4), f.points[1] = point(520, 300, 5);
+        dgx_di_pointer_read(&p, 490);
+        f.points[0] = point(502, 300, 4), f.points[1] = point(521, 301, 5);
+        dgx_di_pointer_read(&p, 495);
+        CHECK(finger(&p, 4)->x == 502 && finger(&p, 5)->x == 521 && finger(&p, 5)->y == 301);
+        /* a finger of its own number that moves far, near no other: itself */
+        f.n = 0, dgx_di_pointer_read(&p, 500), dgx_di_pointer_read(&p, 540);
+        f.n = 1, f.points[0] = point(100, 100, 2);
+        dgx_di_pointer_read(&p, 600);
+        f.points[0] = point(900, 500, 2);
+        dgx_di_pointer_read(&p, 610);
+        CHECK(finger(&p, 2)->x == 900 && finger(&p, 2)->down);
+    }
+
+    /*
      * claimed fingers (a pad's): never first, and down they keep none from being first; the first may go down beside
      * one held, and a finger left down claimed is no reason to wait for all up
      */

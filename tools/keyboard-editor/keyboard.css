@@ -1,0 +1,229 @@
+/* the workbench: the tools, the display with its pages, the properties, the line of state */
+html, body {
+    height: 100%;
+    overflow: hidden;
+}
+
+.kb-bench {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+        "top top"
+        "main side"
+        "status status";
+    height: 100vh;
+    gap: 3px;
+    padding: 3px;
+    box-sizing: border-box;
+    background: #e9ebef;
+    font-size: 0.95em;
+}
+
+.kb-dragging {
+    outline: 3px dashed #0d6efd;
+    outline-offset: -3px;
+}
+
+.kb-top {
+    grid-area: top;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 6px;
+    background: #fff;
+    border-radius: 4px;
+}
+
+.kb-sep {
+    width: 1px;
+    height: 24px;
+    background: #ccd;
+    margin: 0 4px;
+}
+
+.kb-zoom {
+    width: auto;
+}
+
+.kb-main {
+    grid-area: main;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: #fff;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+.kb-pages {
+    flex: none;
+}
+
+.kb-trial {
+    align-self: center;
+    padding: 0 8px;
+    color: #345;
+    font-family: monospace;
+}
+
+.kb-canvas-box {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 6px;
+    background: #3a3f47;
+}
+
+.kb-canvas {
+    image-rendering: pixelated;
+    cursor: pointer;
+}
+
+/* as large as fits, the picture in the middle */
+.kb-canvas.kb-fit {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.kb-side {
+    grid-area: side;
+    overflow: auto;
+    background: #fff;
+    border-radius: 4px;
+    padding: 6px 8px;
+}
+
+.kb-props section {
+    border-bottom: 1px solid #e3e5ea;
+    padding: 4px 0 8px;
+}
+
+.kb-props h6 {
+    margin: 4px 0;
+    font-weight: 600;
+}
+
+.kb-props label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.9em;
+    margin: 2px 0;
+}
+
+.kb-props label input,
+.kb-props label select {
+    min-width: 0;
+}
+
+.kb-grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 8px;
+}
+
+.kb-grid2 label {
+    flex-wrap: wrap;
+}
+
+.kb-row {
+    width: 100%;
+}
+
+.kb-dims {
+    display: grid;
+    grid-template-columns: 2.2em 1fr 1em 1fr;
+    align-items: center;
+    gap: 4px;
+    margin: 2px 0;
+    font-size: 0.9em;
+}
+
+.kb-note {
+    color: #778;
+    font-size: 0.85em;
+    font-weight: normal;
+}
+
+.kb-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-bottom: 4px;
+}
+
+.kb-presets .btn {
+    padding: 1px 6px;
+}
+
+.kb-swatch {
+    display: inline-block;
+    width: 18px;
+    height: 14px;
+    border: 1px solid #889;
+    border-radius: 2px;
+    vertical-align: middle;
+    margin-right: 3px;
+}
+
+.kb-color {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 2px 0;
+    font-size: 0.9em;
+}
+
+.kb-color input[type="color"] {
+    width: 34px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid #aab;
+}
+
+.kb-color span:nth-child(2) {
+    flex: 1;
+}
+
+.kb-problem {
+    font-size: 0.85em;
+    margin: 2px 0;
+}
+
+.kb-error {
+    color: #b02a37;
+}
+
+.kb-warning {
+    color: #9a5b00;
+}
+
+.kb-status {
+    grid-area: status;
+    display: flex;
+    gap: 12px;
+    padding: 2px 8px;
+    background: #fff;
+    border-radius: 4px;
+    font-size: 0.85em;
+    color: #445;
+}
+
+/* the menu of templates under New */
+.kb-templates {
+    top: 100%;
+    left: 0;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.kb-about {
+    color: #778;
+    font-size: 0.85em;
+}

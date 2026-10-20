@@ -1,0 +1,44 @@
+{
+    "format": "dgx-di-pad",
+    "version": 1,
+    "name": "twin",
+    "items": [
+        {"kind": "stick", "fromX": "start", "fromY": "end", "x": 280, "y": 280, "r": 190, "out": "left", "floating": true, "color": "#4a5a78", "pictures": {
+            "well": [{"shape": "circle", "x": 0, "y": 0, "r": 190, "color": "dark"}, {"shape": "ring", "x": 0, "y": 0, "r": 190, "width": 15, "color": "item"}],
+            "knob": [{"shape": "circle", "x": 0, "y": 0, "r": 95, "color": "item"}, {"shape": "circle", "x": -28, "y": -30, "r": 29, "color": "light"}],
+            "knobHeld": [{"shape": "circle", "x": 0, "y": 0, "r": 95, "color": "light"}]
+        }},
+        {"kind": "button", "fromX": "end", "fromY": "end", "x": 260, "y": 200, "r": 75, "out": "A", "color": "#29cf29", "pictures": {
+            "normal": [{"shape": "circle", "x": 0, "y": 0, "r": 75, "color": "dark"}, {"shape": "circle", "x": 0, "y": 0, "r": 63, "color": "item"}, {"shape": "circle", "x": -22, "y": -24, "r": 21, "color": "light"}],
+            "pressed": [{"shape": "circle", "x": 0, "y": 0, "r": 75, "color": "item"}, {"shape": "circle", "x": 0, "y": 0, "r": 63, "color": "light"}]
+        }},
+        {"kind": "button", "fromX": "end", "fromY": "end", "x": 150, "y": 310, "r": 75, "out": "B", "color": "#de1818", "pictures": {
+            "normal": [{"shape": "circle", "x": 0, "y": 0, "r": 75, "color": "dark"}, {"shape": "circle", "x": 0, "y": 0, "r": 63, "color": "item"}, {"shape": "circle", "x": -22, "y": -24, "r": 21, "color": "light"}],
+            "pressed": [{"shape": "circle", "x": 0, "y": 0, "r": 75, "color": "item"}, {"shape": "circle", "x": 0, "y": 0, "r": 63, "color": "light"}]
+        }},
+        {"kind": "button", "fromX": "end", "fromY": "end", "x": 370, "y": 310, "r": 75, "out": "X", "color": "#2192ef", "pictures": {
+            "normal": [{"shape": "circle", "x": 0, "y": 0, "r": 75, "color": "dark"}, {"shape": "circle", "x": 0, "y": 0, "r": 63, "color": "item"}, {"shape": "circle", "x": -22, "y": -24, "r": 21, "color": "light"}],
+            "pressed": [{"shape": "circle", "x": 0, "y": 0, "r": 75, "color": "item"}, {"shape": "circle", "x": 0, "y": 0, "r": 63, "color": "light"}]
+        }},
+        {"kind": "button", "fromX": "end", "fromY": "end", "x": 260, "y": 420, "r": 75, "out": "Y", "color": "#efc721", "pictures": {
+            "normal": [{"shape": "circle", "x": 0, "y": 0, "r": 75, "color": "dark"}, {"shape": "circle", "x": 0, "y": 0, "r": 63, "color": "item"}, {"shape": "circle", "x": -22, "y": -24, "r": 21, "color": "light"}],
+            "pressed": [{"shape": "circle", "x": 0, "y": 0, "r": 75, "color": "item"}, {"shape": "circle", "x": 0, "y": 0, "r": 63, "color": "light"}]
+        }},
+        {"kind": "button", "fromX": "start", "fromY": "start", "x": 220, "y": 150, "r": 90, "out": "LB", "pictures": {
+            "normal": [{"shape": "circle", "x": 0, "y": 0, "r": 90, "color": "dark"}, {"shape": "circle", "x": 0, "y": 0, "r": 76, "color": "item"}, {"shape": "circle", "x": -27, "y": -29, "r": 25, "color": "light"}],
+            "pressed": [{"shape": "circle", "x": 0, "y": 0, "r": 90, "color": "item"}, {"shape": "circle", "x": 0, "y": 0, "r": 76, "color": "light"}]
+        }},
+        {"kind": "button", "fromX": "end", "fromY": "start", "x": 220, "y": 150, "r": 90, "out": "RB", "pictures": {
+            "normal": [{"shape": "circle", "x": 0, "y": 0, "r": 90, "color": "dark"}, {"shape": "circle", "x": 0, "y": 0, "r": 76, "color": "item"}, {"shape": "circle", "x": -27, "y": -29, "r": 25, "color": "light"}],
+            "pressed": [{"shape": "circle", "x": 0, "y": 0, "r": 90, "color": "item"}, {"shape": "circle", "x": 0, "y": 0, "r": 76, "color": "light"}]
+        }},
+        {"kind": "button", "fromX": "middle", "fromY": "end", "x": -150, "y": 120, "r": 50, "out": "BACK", "pictures": {
+            "normal": [{"shape": "circle", "x": 0, "y": 0, "r": 50, "color": "dark"}, {"shape": "circle", "x": 0, "y": 0, "r": 42, "color": "item"}, {"shape": "circle", "x": -15, "y": -16, "r": 14, "color": "light"}, {"shape": "polygon", "points": [[17, -17], [17, 17], [-17, 0]], "color": "#ffffff"}],
+            "pressed": [{"shape": "circle", "x": 0, "y": 0, "r": 50, "color": "item"}, {"shape": "circle", "x": 0, "y": 0, "r": 42, "color": "light"}, {"shape": "polygon", "points": [[17, -17], [17, 17], [-17, 0]], "color": "#ffffff"}]
+        }},
+        {"kind": "button", "fromX": "middle", "fromY": "end", "x": 150, "y": 120, "r": 50, "out": "START", "pictures": {
+            "normal": [{"shape": "circle", "x": 0, "y": 0, "r": 50, "color": "dark"}, {"shape": "circle", "x": 0, "y": 0, "r": 42, "color": "item"}, {"shape": "circle", "x": -15, "y": -16, "r": 14, "color": "light"}, {"shape": "polygon", "points": [[-17, -17], [-17, 17], [17, 0]], "color": "#ffffff"}],
+            "pressed": [{"shape": "circle", "x": 0, "y": 0, "r": 50, "color": "item"}, {"shape": "circle", "x": 0, "y": 0, "r": 42, "color": "light"}, {"shape": "polygon", "points": [[-17, -17], [-17, 17], [17, 0]], "color": "#ffffff"}]
+        }}
+    ]
+}

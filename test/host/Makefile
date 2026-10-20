@@ -10,7 +10,12 @@ CFLAGS ?= -O1 -g -fsanitize=address,undefined -fno-sanitize-recover=undefined -f
 CFLAGS += -std=gnu11 -Wall -Wextra -Wno-unused-parameter -I$(ROOT)/include -I$(DGX)/include
 BUILD  := build
 
-all: run-test_pointer run-test_touch run-test_calibration run-test_rects run-test_pad
+# with Python, the ready layouts of the keyboard made again of their JSON and compared; with Node, the geometry of the
+# keyboard's editor compared with the C's
+TOOLS := $(if $(shell command -v python3),check-layouts check-pad-layouts) $(if $(shell command -v node),check-keyboard-js check-pad-js) \
+	$(if $(and $(shell command -v python3),$(shell command -v node)),check-templates)
+
+all: run-test_pointer run-test_touch run-test_calibration run-test_rects run-test_pad run-test_keyboard $(TOOLS)
 
 run-%: $(BUILD)/%
 	./$<
@@ -36,11 +41,52 @@ DGX_SRCS  := $(addprefix $(DGX)/src/, pixels.c draw.c ellipse.c bezier.c texture
                dgx_bus_optimized_funcs.c dgx_spi_area_protocol.c bitmap.c font.c bw_screen.c scroll.c bus/fb_area.c bus/fb_tiles.c bus/fb_flip.c)
 DGX_FLAGS := -I$(DGX)/test/host/stubs -I$(DGX)/src -include $(DGX)/test/host/stubs/esp_log.h -Wno-format -Wno-sign-compare
 
-$(BUILD)/test_pad: test_pad.c check.h $(ROOT)/src/dgx_di_pad.c $(ROOT)/src/dgx_di_pointer.c $(ROOT)/include/dgx_di.h $(ROOT)/include/dgx_di_pad.h
+$(BUILD)/test_pad: test_pad.c check.h $(ROOT)/src/dgx_di_pad.c $(ROOT)/src/dgx_di_pad_layouts.c $(ROOT)/src/dgx_di_pointer.c $(ROOT)/include/dgx_di.h $(ROOT)/include/dgx_di_pad.h
 	mkdir -p $(BUILD)
-	$(CC) $(CFLAGS) $(DGX_FLAGS) -o $@ test_pad.c $(ROOT)/src/dgx_di_pad.c $(ROOT)/src/dgx_di_pointer.c $(DGX_SRCS) -lm
+	$(CC) $(CFLAGS) $(DGX_FLAGS) -o $@ test_pad.c $(ROOT)/src/dgx_di_pad.c $(ROOT)/src/dgx_di_pad_layouts.c $(ROOT)/src/dgx_di_pointer.c $(DGX_SRCS) -lm
+
+KEYBOARD := $(ROOT)/src/dgx_di_keyboard.c $(ROOT)/src/dgx_di_keyboard_layouts.c $(ROOT)/src/dgx_di_rects.c $(ROOT)/src/dgx_di_pointer.c
+
+$(BUILD)/test_keyboard: test_keyboard.c check.h $(KEYBOARD) $(ROOT)/include/dgx_di.h $(ROOT)/include/dgx_di_keyboard.h
+	mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(DGX_FLAGS) -o $@ test_keyboard.c $(KEYBOARD) $(DGX_SRCS) -lm
+
+# includes the keyboard's source (its lay() of each page): the rest of it only
+$(BUILD)/keyboard_dump: keyboard_dump.c $(KEYBOARD) $(ROOT)/include/dgx_di_keyboard.h
+	mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(DGX_FLAGS) -o $@ keyboard_dump.c $(filter-out %/dgx_di_keyboard.c,$(KEYBOARD)) $(DGX_SRCS) -lm
+
+check-layouts:
+	mkdir -p $(BUILD)
+	python3 $(ROOT)/tools/keyboard_blob.py --builtin $(BUILD)/dgx_di_keyboard_layouts.c $(ROOT)/tools/keyboard-editor/examples/*.json
+	cmp $(BUILD)/dgx_di_keyboard_layouts.c $(ROOT)/src/dgx_di_keyboard_layouts.c && echo "the ready layouts: as their JSON makes them"
+
+check-keyboard-js: $(BUILD)/keyboard_dump
+	./$(BUILD)/keyboard_dump > $(BUILD)/keyboard-geometry.json
+	mkdir -p $(BUILD)/keyboard-templates
+	node $(ROOT)/tools/keyboard-editor/test.js $(BUILD)/keyboard-geometry.json $(BUILD)/keyboard-templates
+
+check-pad-layouts:
+	mkdir -p $(BUILD)
+	python3 $(ROOT)/tools/pad_blob.py --builtin $(BUILD)/dgx_di_pad_layouts.c $(ROOT)/tools/pad-editor/examples/*.json
+	cmp $(BUILD)/dgx_di_pad_layouts.c $(ROOT)/src/dgx_di_pad_layouts.c && echo "the ready pads: as their JSON makes them"
+
+$(BUILD)/pad_dump: pad_dump.c $(ROOT)/src/dgx_di_pad.c $(ROOT)/src/dgx_di_pad_layouts.c $(ROOT)/src/dgx_di_pointer.c $(ROOT)/include/dgx_di_pad.h
+	mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(DGX_FLAGS) -o $@ pad_dump.c $(ROOT)/src/dgx_di_pad.c $(ROOT)/src/dgx_di_pad_layouts.c $(ROOT)/src/dgx_di_pointer.c $(DGX_SRCS) -lm
+
+check-pad-js: $(BUILD)/pad_dump
+	./$(BUILD)/pad_dump > $(BUILD)/pad-geometry.json
+	mkdir -p $(BUILD)/pad-templates
+	node $(ROOT)/tools/pad-editor/test.js $(BUILD)/pad-geometry.json $(BUILD)/pad-templates
+
+# the templates of the editors, as they write them: the tools make blobs of them
+check-templates: check-keyboard-js check-pad-js
+	python3 $(ROOT)/tools/keyboard_blob.py --builtin $(BUILD)/keyboard-templates.c $(BUILD)/keyboard-templates/*.json
+	python3 $(ROOT)/tools/pad_blob.py --builtin $(BUILD)/pad-templates.c $(BUILD)/pad-templates/*.json
+	@echo "the templates of the editors: the tools make blobs of them"
 
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all clean
+.PHONY: all clean check-layouts check-keyboard-js check-pad-layouts check-pad-js check-templates

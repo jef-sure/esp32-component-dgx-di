@@ -1,0 +1,19 @@
+{
+    "format": "dgx-di-keyboard",
+    "version": 1,
+    "name": "digits",
+    "keyH": 100,
+    "unitW": 200,
+    "gap": 15,
+    "margin": 20,
+    "radius": 20,
+    "theme": {"backTop": "#2b2f36", "backBottom": "#1b1e23", "key": "#4b525c", "keySpecial": "#353a42", "keyPressed": "#8a94a3", "label": "#ffffff"},
+    "pages": [
+        {"name": "digits", "rows": [
+            [{"char": "1"}, {"char": "2"}, {"char": "3"}],
+            [{"char": "4"}, {"char": "5"}, {"char": "6"}],
+            [{"char": "7"}, {"char": "8"}, {"char": "9"}],
+            [{"action": "erase"}, {"char": "0"}, {"action": "done"}]
+        ]}
+    ]
+}

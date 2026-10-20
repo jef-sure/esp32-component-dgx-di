@@ -191,9 +191,9 @@ int main(void)
         dgx_di_calibration_steady(&c, 56, 90);
         CHECK(c.blink_ms == 56 && c.gap_ms == 90 && c.down_ms == 80 && c.up_ms == 110);
         dgx_di_calibration_steady(&c, 0, 0);
-        CHECK(c.down_ms == 0 && c.up_ms == 60); /* up after 60 at least */
+        CHECK(c.down_ms == 0 && c.up_ms == 30); /* up after 30 at least */
         dgx_di_calibration_steady(&c, 0, 20);
-        CHECK(c.up_ms == 60);
+        CHECK(c.up_ms == 40);
         dgx_di_calibration_steady(&c, 0, 45);
         CHECK(c.up_ms == 70); /* 45 and 20, in tens up */
     }
@@ -213,10 +213,10 @@ int main(void)
         CHECK(strstr(text, "no finger before a press, and lost one held for up to 132 ms: up after 160 ms.") != NULL);
         dgx_di_calibration_steady(&c, 56, 0);
         dgx_di_calibration_text(&c, text, sizeof text);
-        CHECK(strstr(text, "for up to 56 ms before a press, and never lost one held: down after 80 ms, up after 60.") != NULL);
+        CHECK(strstr(text, "for up to 56 ms before a press, and never lost one held: down after 80 ms, up after 30.") != NULL);
         dgx_di_calibration_steady(&c, 0, 0);
         dgx_di_calibration_text(&c, text, sizeof text);
-        CHECK(strstr(text, "neither showed a finger before a press nor lost one held: up after 60 ms.") != NULL);
+        CHECK(strstr(text, "neither showed a finger before a press nor lost one held: up after 30 ms.") != NULL);
         dgx_di_calibration_steady(&c, 56, 90);
         CHECK(dgx_di_calibration_text(&c, cut, sizeof cut) == len && strlen(cut) == sizeof cut - 1 && !strncmp(cut, text, sizeof cut - 1));
         CHECK(dgx_di_calibration_text(&c, NULL, 0) == len);

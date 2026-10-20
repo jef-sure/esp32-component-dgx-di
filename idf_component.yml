@@ -1,6 +1,6 @@
 ## IDF Component Manager Manifest File
-version: "0.0.1"
-description: "Touch input for DGX displays: the fingers of a touch panel as fingers of the display, turned with the screen; a calibration measured on the board; gestures in millimetres; buttons the program draws; a translucent game pad in a layer of DGX; a GSL3680 driver and any esp_lcd_touch panel"
+version: "0.0.2"
+description: "Touch input for DGX displays: the fingers of a touch panel as fingers of the display, turned with the screen; a calibration measured on the board; gestures in millimetres; buttons the program draws; a translucent game pad in a layer of DGX and a keyboard on the display, with editors of their layouts and looks; a GSL3680 driver and any esp_lcd_touch panel"
 url: https://github.com/jef-sure/esp32-component-dgx-di
 repository: https://github.com/jef-sure/esp32-component-dgx-di.git
 documentation: https://github.com/jef-sure/esp32-component-dgx-di/blob/main/README.md
@@ -18,6 +18,7 @@ tags:
   - input
   - gestures
   - gamepad
+  - keyboard
   - calibration
   - gsl3680
   - esp_lcd_touch
@@ -35,6 +36,11 @@ files:
     - "src/**/*.c"
     - "include/**/*.h"
     - "tools/**/*.py"
+    - "tools/**/*.js"   # the editors, in the browser
+    - "tools/**/*.html"
+    - "tools/**/*.css"
+    - "tools/**/*.json"
+    - "tools/**/*.md"
     - "README.md"
     - "CHANGES.md"
     - "LICENSE"

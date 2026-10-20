@@ -62,7 +62,9 @@ typedef struct dgx_di_device {
  * Down and up are steadied for each finger: down when the device has seen it so long running, up when it has not so
  * long (a sensitive panel blinks at its threshold, the finger still above the glass). A finger is known by the number
  * the device gives it; a device that keeps none gets numbers from the glue, each finger of a read taken for the
- * nearest finger of the last.
+ * nearest finger of the last. A device's numbers are not taken blindly: a read with a number twice is torn and not taken
+ * (the fingers as they were), and a point of one finger's number lying on another finger, far from its own, is that
+ * other finger's echo (a GT911 tears a read so as a finger goes up).
  *
  * The first finger is the one that went down when none was, until it goes up; after it none is first until all are up
  * (a finger left down is no new touch). It is what a touch (below) or a program of one pointer takes. A finger claimed
@@ -168,7 +170,8 @@ bool dgx_di_calibration_make(dgx_di_calibration_t *calibration, const dgx_di_dev
 
 /*
  * How to steady the panel, from how it blinked: down after the longest blink and a little more, up after the longest
- * gap and a little more, 60 ms at least (a measure may see no gap the panel has at another time).
+ * gap and a little more, 30 ms at least (a measure may see no gap the panel has at another time; two quick taps of a key
+ * lift for 40 ms between them).
  */
 void dgx_di_calibration_steady(dgx_di_calibration_t *calibration, int blink_ms, int gap_ms);
 

@@ -1,0 +1,25 @@
+{
+    "format": "dgx-di-keyboard",
+    "version": 1,
+    "name": "latin",
+    "keyH": 100,
+    "unitW": 160,
+    "gap": 12,
+    "margin": 15,
+    "radius": 15,
+    "theme": {"backTop": "#2b2f36", "backBottom": "#1b1e23", "key": "#4b525c", "keySpecial": "#353a42", "keyPressed": "#8a94a3", "label": "#ffffff"},
+    "pages": [
+        {"name": "letters", "rows": [
+            [{"char": "q", "upper": "Q"}, {"char": "w", "upper": "W"}, {"char": "e", "upper": "E"}, {"char": "r", "upper": "R"}, {"char": "t", "upper": "T"}, {"char": "y", "upper": "Y"}, {"char": "u", "upper": "U"}, {"char": "i", "upper": "I"}, {"char": "o", "upper": "O"}, {"char": "p", "upper": "P"}],
+            [{"char": "a", "upper": "A"}, {"char": "s", "upper": "S"}, {"char": "d", "upper": "D"}, {"char": "f", "upper": "F"}, {"char": "g", "upper": "G"}, {"char": "h", "upper": "H"}, {"char": "j", "upper": "J"}, {"char": "k", "upper": "K"}, {"char": "l", "upper": "L"}],
+            [{"action": "shift", "width": 6}, {"char": "z", "upper": "Z"}, {"char": "x", "upper": "X"}, {"char": "c", "upper": "C"}, {"char": "v", "upper": "V"}, {"char": "b", "upper": "B"}, {"char": "n", "upper": "N"}, {"char": "m", "upper": "M"}, {"action": "erase", "width": 6}],
+            [{"page": 1, "label": "123", "width": 6}, {"action": "cancel"}, {"char": " ", "width": 20}, {"char": "."}, {"action": "done", "width": 6}]
+        ]},
+        {"name": "digits and signs", "rows": [
+            [{"char": "1"}, {"char": "2"}, {"char": "3"}, {"char": "4"}, {"char": "5"}, {"char": "6"}, {"char": "7"}, {"char": "8"}, {"char": "9"}, {"char": "0"}],
+            [{"char": "-"}, {"char": "/"}, {"char": ":"}, {"char": ";"}, {"char": "("}, {"char": ")"}, {"char": "&"}, {"char": "@"}, {"char": "\""}, {"char": "'"}],
+            [{"char": "_"}, {"char": "#"}, {"char": "+"}, {"char": "="}, {"char": "*"}, {"char": "%"}, {"char": "?"}, {"char": "!"}, {"action": "erase", "width": 6}],
+            [{"page": 0, "label": "abc", "width": 6}, {"action": "cancel"}, {"char": " ", "width": 20}, {"char": ","}, {"action": "done", "width": 6}]
+        ]}
+    ]
+}

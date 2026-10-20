@@ -1,0 +1,14 @@
+{
+    "format": "dgx-di-pad",
+    "version": 1,
+    "name": "classic",
+    "items": [
+        {"kind": "cross", "fromX": "start", "fromY": "end", "x": 300, "y": 300, "r": 200},
+        {"kind": "button", "fromX": "end", "fromY": "end", "x": 300, "y": 220, "r": 70, "out": "A", "color": "#29cf29"},
+        {"kind": "button", "fromX": "end", "fromY": "end", "x": 180, "y": 340, "r": 70, "out": "B", "color": "#de1818"},
+        {"kind": "button", "fromX": "end", "fromY": "end", "x": 420, "y": 340, "r": 70, "out": "X", "color": "#2192ef"},
+        {"kind": "button", "fromX": "end", "fromY": "end", "x": 300, "y": 460, "r": 70, "out": "Y", "color": "#efc721"},
+        {"kind": "button", "fromX": "middle", "fromY": "end", "x": -150, "y": 120, "r": 50, "out": "BACK"},
+        {"kind": "button", "fromX": "middle", "fromY": "end", "x": 150, "y": 120, "r": 50, "out": "START"}
+    ]
+}

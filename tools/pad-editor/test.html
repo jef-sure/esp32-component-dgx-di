@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>DGX-DI pad editor: its test</title>
+    <link rel="stylesheet" href="https://unpkg.com/bootstrap@5.1.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="pad.css">
+    <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vue-demi@0.14.10/lib/index.iife.js"></script>
+    <script src="https://unpkg.com/pinia@2.3.1/dist/pinia.iife.js"></script>
+    <script src="Pad.js"></script>
+    <script src="Store.js"></script>
+    <script src="PadCanvas.js"></script>
+    <script src="PictureEditor.js"></script>
+    <script src="PadProps.js"></script>
+    <script src="PadEdit.js"></script>
+</head>
+
+<body>
+    <!-- The editor's actions on the classic layout, the workbench drawn meanwhile; what the browser keeps of it is put back
+         after. Open it in a browser: the line on top says how it went (and the console). -->
+    <div id="verdict" style="font: bold 20px sans-serif; padding: 6px">…</div>
+    <div id="vue-app"></div>
+    <script src="pad-app.js"> </script>
+    <script>
+        const fails = [], kept = localStorage.getItem(PadStorageKey);
+        const ok = (cond, what) => { if (!cond) fails.push(what); };
+        // the mouse on an element of the page: down, moves, up at points of it (pixels from its top left)
+        const mouse = (el, type, x, y, extra) => {
+            const r = el.getBoundingClientRect();
+            el.dispatchEvent(new MouseEvent(type, { bubbles: true, clientX: r.left + x, clientY: r.top + y, buttons: type === 'mouseup' ? 0 : 1, ...(extra || {}) }));
+        };
+        (async () => {
+        try {
+            const s = usePadStore(), P = PadLayout;
+            s.replace(P.classic());
+            s.edit.display = { ...P.Displays[1] }, s.edit.mode = 'edit';
+            ok(s.places[0].x === 177 && s.places[0].r === 118 && s.places[1].r === 41, 'the classic one on the 10": as DGX-DI places it');
+            // an item moved by a pixel place, a millimetre a step; made larger, its pictures with it; undone
+            s.choose(1);
+            s.moveItem(1, s.places[1].x - 59, s.places[1].y);
+            ok(s.layout.items[1].x === 400 && s.layout.items[1].y === 220, 'moved 10 mm to the left: from the right edge 40 mm');
+            s.undo();
+            ok(s.layout.items[1].x === 300, 'undone');
+            s.theme('Flat', true);
+            ok(s.layout.items.every(it => it.pictures), 'a theme for all');
+            const before = s.layout.items[1].pictures.normal[0].r;
+            s.resizeItem(1, 140);
+            ok(s.layout.items[1].r === 140 && s.layout.items[1].pictures.normal[0].r === before * 2, 'made larger, its picture with it');
+            s.undo();
+            // a picture: shapes added, changed, ordered, taken away
+            s.editPicture('normal');
+            const n = s.shapes.length;
+            s.addShape({ shape: 'ring', x: 0, y: 0, r: 60, width: 8, color: '#ffffff' });
+            ok(s.shapes.length === n + 1 && s.edit.shape === n, 'a shape added');
+            s.setShape({ r: 50 });
+            ok(s.shapes[n].r === 50, 'changed');
+            s.orderShape(-1);
+            ok(s.edit.shape === n - 1 && s.shapes[n - 1].shape === 'ring', 'drawn earlier');
+            s.removeShape();
+            ok(s.shapes.length === n, 'taken away');
+            // the pictures of A to every button, as large as each
+            s.picturesToKind();
+            const start = s.layout.items[6];
+            ok(start.pictures.normal[0].r === Math.round(s.layout.items[1].pictures.normal[0].r * start.r / s.layout.items[1].r), 'to every button, as large as it');
+            // a cross's arms held, made of the one up
+            s.choose(0), s.editPicture('up');
+            s.armsFromUp();
+            const up = s.layout.items[0].pictures.up[0], right = s.layout.items[0].pictures.right[0], down = s.layout.items[0].pictures.down[0];
+            ok(right.x === -up.y && right.y === up.x && right.w === up.h && down.y === -up.y && down.w === up.w, 'the arms turned');
+            // items added and taken away; a kind changed
+            const count = s.layout.items.length;
+            s.addItem('stick');
+            ok(s.layout.items.length === count + 1 && s.edit.item === count && s.chosen.kind === 'stick', 'a stick added');
+            s.setItem({ floating: true });
+            ok(s.chosen.floating === true, 'floating');
+            s.removeItem();
+            ok(s.layout.items.length === count, 'taken away');
+            // the trial: a finger on A, led out, on the cross's corner
+            s.edit.mode = 'try';
+            const a = s.places[1], c = s.places[0];
+            s.fingerDown(a.x, a.y);
+            ok(s.trial.buttons === P.bit('A') && s.trial.states[1].down, 'A held');
+            s.fingerMove(a.x + Math.trunc(a.r * 16 / 10), a.y);
+            ok(s.trial.buttons === 0, 'led out: let go');
+            s.fingerUp();
+            s.fingerDown(c.x + Math.trunc(c.r * 6 / 10), c.y + Math.trunc(c.r * 6 / 10));
+            ok(s.trial.buttons === (P.bit('RIGHT') | P.bit('DOWN')), 'the corner of the cross: both');
+            s.fingerUp();
+            ok(s.trial.buttons === 0, 'up');
+            s.edit.mode = 'edit';
+            // not taken: another format, not JSON; the file read back the same
+            const items = s.layout.items.length;
+            s.open('{"format": "dgx-di-keyboard"}', 'keys.json');
+            ok(s.layout.items.length === items && /not a layout/.test(s.message), 'a keyboard refused');
+            s.open('{', 'broken.json');
+            ok(/not JSON/.test(s.message), 'not JSON refused');
+            const text = P.toJson(s.layout);
+            s.open(text, 'again.json');
+            ok(P.toJson(s.layout) === text, 'written and read back the same');
+            s.newLayout();
+            ok(s.layout.items.length === 7 && !s.layout.items[0].pictures, 'the classic one anew');
+            // the mouse: an item dragged on the display a millimetre a step
+            s.edit.zoom = 1;
+            await Vue.nextTick();
+            const display = document.querySelector('.pd-canvas'), a1 = s.places[1];
+            mouse(display, 'mousedown', a1.x, a1.y), mouse(display, 'mousemove', a1.x - 30, a1.y), mouse(display, 'mouseup', a1.x - 30, a1.y);
+            ok(s.layout.items[1].x === 350 && s.edit.item === 1, 'A dragged 30 px to the left: 5 mm, from the right edge 35 mm');
+            s.undo();
+            ok(s.layout.items[1].x === 300, 'the drag undone as one');
+            // the mouse in a picture: a circle, a polygon, a line drawn by hand; a shape chosen and moved
+            s.theme('Flat', true), s.choose(1), s.editPicture('normal');
+            await Vue.nextTick();
+            const pic = document.querySelector('.pd-picture-canvas'), size = pic.getBoundingClientRect().width, mid = size / 2;
+            const n0 = s.shapes.length;
+            s.edit.tool = 'circle';
+            mouse(pic, 'mousedown', mid, mid), mouse(pic, 'mousemove', mid + size / 8, mid), mouse(pic, 'mouseup', mid + size / 8, mid);
+            const circle = s.shapes[n0];
+            ok(s.shapes.length === n0 + 1 && circle.shape === 'circle' && Math.abs(circle.r - Math.round(2.8 * 70 / 8)) <= 1 && Math.abs(circle.x) <= 1, 'a circle drawn: an eighth of the view, from the middle');
+            s.edit.tool = 'polygon';
+            mouse(pic, 'mousedown', mid, mid - 30), mouse(pic, 'mouseup', mid, mid - 30);
+            mouse(pic, 'mousedown', mid + 30, mid + 20), mouse(pic, 'mouseup', mid + 30, mid + 20);
+            mouse(pic, 'mousedown', mid - 30, mid + 20), mouse(pic, 'mouseup', mid - 30, mid + 20);
+            pic.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+            ok(s.shapes.length === n0 + 2 && s.shapes[n0 + 1].shape === 'polygon' && s.shapes[n0 + 1].points.length === 3, 'a polygon of three clicks');
+            s.edit.tool = 'line';
+            mouse(pic, 'mousedown', mid - 60, mid);
+            for (let i = 1; i <= 12; ++i) mouse(pic, 'mousemove', mid - 60 + i * 10, mid + (i % 2) * 8);
+            mouse(pic, 'mouseup', mid + 60, mid);
+            const drawn = s.shapes[n0 + 2];
+            ok(drawn && drawn.shape === 'line' && drawn.points.length >= 6 && drawn.width === s.edit.width, 'a line drawn by hand, a point each half millimetre');
+            s.edit.tool = 'select';
+            mouse(pic, 'mousedown', mid + size / 16, mid);
+            ok(s.edit.shape >= n0, 'a shape chosen where it is');
+            const was = JSON.stringify(s.shapes[s.edit.shape]);
+            mouse(pic, 'mousemove', mid + size / 16 + 20, mid + 20), mouse(pic, 'mouseup', mid + size / 16 + 20, mid + 20);
+            ok(JSON.stringify(s.shapes[s.edit.shape]) !== was, 'moved');
+            s.undo();
+            ok(JSON.stringify(s.shapes[s.edit.shape]) === was, 'the move undone as one');
+            // the menu of templates: opened by New, one chosen, undone as one, closed by a click elsewhere; each drawn
+            s.edit.picture = '';
+            await Vue.nextTick();
+            const newButton = [...document.querySelectorAll('.pd-top button')].find(b => b.textContent.trim() === 'New');
+            newButton.click();
+            await Vue.nextTick();
+            const menu = document.querySelector('.pd-templates'), entries = [...menu.querySelectorAll('.dropdown-item')];
+            ok(menu.classList.contains('show') && entries.length === P.Templates.length, 'the menu of templates');
+            entries.find(a => a.textContent.includes('Shooter')).click();
+            await Vue.nextTick();
+            ok(!menu.classList.contains('show') && s.layout.name === 'shooter' && s.layout.items.filter(it => it.kind === 'stick').length === 2, 'a template chosen: two sticks');
+            s.undo();
+            ok(s.layout.name !== 'shooter', 'undone');
+            newButton.click();
+            await Vue.nextTick();
+            document.querySelector('.pd-status').dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+            await Vue.nextTick();
+            ok(!menu.classList.contains('show'), 'closed by a click elsewhere');
+            const sheet = document.createElement('canvas').getContext('2d');
+            for (const t of P.Templates) {
+                s.newLayout(t.name);
+                await Vue.nextTick();
+                s.layout.items.forEach((it, k) => P.drawItem(sheet, it, s.places[k], s.edit.display, { down: true, ways: P.bit('LEFT') | P.bit('DOWN') }));
+            }
+            ok(s.layout.name === P.Templates[P.Templates.length - 1].name, 'every template drawn');
+        } catch (e) {
+            fails.push('thrown: ' + e.stack);
+        }
+        if (kept === null) localStorage.removeItem(PadStorageKey);
+        else localStorage.setItem(PadStorageKey, kept);
+        const verdict = fails.length ? 'EDITOR FAILED: ' + fails.join('; ') : 'EDITOR OK';
+        document.getElementById('verdict').textContent = verdict;
+        document.getElementById('verdict').style.color = fails.length ? '#b02a37' : '#146c43';
+        console.log(verdict);
+        })();
+    </script>
+</body>
+
+</html>

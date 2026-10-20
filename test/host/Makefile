@@ -61,10 +61,17 @@ check-layouts:
 	python3 $(ROOT)/tools/keyboard_blob.py --builtin $(BUILD)/dgx_di_keyboard_layouts.c $(ROOT)/tools/keyboard-editor/examples/*.json
 	cmp $(BUILD)/dgx_di_keyboard_layouts.c $(ROOT)/src/dgx_di_keyboard_layouts.c && echo "the ready layouts: as their JSON makes them"
 
-check-keyboard-js: $(BUILD)/keyboard_dump
+# text drawn by DGX in some of its own fonts, and the Latin keyboard's labels in one: the editor's labels compared
+DGX_FONTS := $(addprefix $(DGX)/src/fonts/, ArialRegular12.c TerminusTTFMedium12.c VerdanaRegular32.c)
+$(BUILD)/font_dump: font_dump.c $(KEYBOARD) $(ROOT)/include/dgx_di_keyboard.h
+	mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(DGX_FLAGS) -o $@ font_dump.c $(KEYBOARD) $(DGX_FONTS) $(DGX_SRCS) -lm
+
+check-keyboard-js: $(BUILD)/keyboard_dump $(BUILD)/font_dump
 	./$(BUILD)/keyboard_dump > $(BUILD)/keyboard-geometry.json
+	./$(BUILD)/font_dump > $(BUILD)/font-dump.json
 	mkdir -p $(BUILD)/keyboard-templates
-	node $(ROOT)/tools/keyboard-editor/test.js $(BUILD)/keyboard-geometry.json $(BUILD)/keyboard-templates
+	node $(ROOT)/tools/keyboard-editor/test.js $(BUILD)/keyboard-geometry.json $(BUILD)/keyboard-templates $(BUILD)/font-dump.json $(DGX)/src/fonts
 
 check-pad-layouts:
 	mkdir -p $(BUILD)
@@ -83,8 +90,9 @@ check-pad-js: $(BUILD)/pad_dump
 # the templates of the editors, as they write them: the tools make blobs of them
 check-templates: check-keyboard-js check-pad-js
 	python3 $(ROOT)/tools/keyboard_blob.py --builtin $(BUILD)/keyboard-templates.c $(BUILD)/keyboard-templates/*.json
+	for f in $(BUILD)/keyboard-templates/*.json; do python3 $(ROOT)/tools/keyboard_blob.py --letters $${f%.json}.py-letters $$f && cmp $${f%.json}.py-letters $${f%.json}.letters || exit 1; done
 	python3 $(ROOT)/tools/pad_blob.py --builtin $(BUILD)/pad-templates.c $(BUILD)/pad-templates/*.json
-	@echo "the templates of the editors: the tools make blobs of them"
+	@echo "the templates of the editors: the tools make blobs of them, and the keyboard's letters as the editor has them"
 
 clean:
 	rm -rf $(BUILD)

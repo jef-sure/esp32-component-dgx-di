@@ -1,5 +1,17 @@
 # Changes
 
+## Unreleased
+
+- **The keyboard editor draws the labels in the font chosen:** the
+  browser's own, a font of the computer (Chrome and Edge list them), a font
+  file (TTF, OTF), or a font of DGX (the C of font2c, the JSON of DGX-GE's
+  `dgx_ge_font.py`), drawn pixel for pixel where DGX-DI draws it (compared
+  with DGX's own drawing, glyph and label). A key whose letters the font has
+  not is marked and told among the problems. The font is saved with the
+  layout (`"font"`), with what the build needs to find it again by its
+  PostScript name; `keyboard_blob.py --letters` gives a layout's letters for
+  `font2c -f`. The blob is the same as before.
+
 ## 0.0.2 - 2026-10-20
 
 On DGX 0.6.6, as 0.0.1.

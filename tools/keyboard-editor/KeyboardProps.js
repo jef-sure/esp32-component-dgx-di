@@ -1,5 +1,6 @@
-// The properties on the right: the display seen, the layout's sizes in millimetres, its colors, the key chosen, its
-// row and page; what is wrong with the layout.
+// The properties on the right: the display seen, the font of the labels (the browser's, of the computer, of a file, of
+// DGX) and what the build makes of it, the layout's sizes in millimetres, its colors, the key chosen, its row and page;
+// what is wrong with the layout.
 const KeyKinds = {
     char: 'a character',
     erase: 'erase (U+0008)',
@@ -11,7 +12,10 @@ const KeyKinds = {
 
 const KeyboardProps = {
     data() {
-        return { presets: ThemePresets, kinds: KeyKinds, colors: { backTop: 'band, top', backBottom: 'band, bottom', key: 'key', keySpecial: 'special key', keyPressed: 'pressed key', label: 'label' } };
+        return {
+            presets: ThemePresets, kinds: KeyKinds, colors: { backTop: 'band, top', backBottom: 'band, bottom', key: 'key', keySpecial: 'special key', keyPressed: 'pressed key', label: 'label' },
+            computer: [], fontFilter: ''
+        };
     },
     computed: {
         ...Pinia.mapStores(useKeyboardStore),
@@ -27,6 +31,33 @@ const KeyboardProps = {
                 const p = KeyboardLayout.Displays.find(p => p.name === name);
                 if (p) this.keyboardStore.setDisplay(p);
             }
+        },
+        labelFont() {
+            return this.keyboardStore.labelFont;
+        },
+        // the font of the labels in words: which, how large, whether it is here
+        fontText() {
+            const s = this.keyboardStore, want = s.layout.font, lf = s.labelFont;
+            if (!want) return `the browser's own, ${lf.px} px: as large as the DGX font the program gives`;
+            if (want.dgx) return lf.kind === 'dgx' ? `${want.dgx}, a font of DGX: ${lf.dgx.glyphs.size} letters, ${lf.dgx.size} px a line, drawn as on the board` : `${want.dgx}, a font of DGX: not opened here, open its C again`;
+            const name = [want.family, want.style].filter(Boolean).join(' ');
+            return lf.kind === 'browser' ? `${name}: not on this computer, the browser's own instead` : `${name}, ${lf.px} px` + (lf.has ? '' : ', its letters not known');
+        },
+        // what the build needs: the face found by its PostScript name, its size, the letters past ASCII
+        buildText() {
+            const s = this.keyboardStore, want = s.layout.font, d = s.edit.display;
+            if (!want) return '';
+            if (want.dgx) return `the program gives the keyboard ${want.dgx}()`;
+            const letters = KeyboardFonts.letters(s.layout);
+            return `for the build: ${want.postscript ? 'fc-list :postscriptname=' + want.postscript : want.family + ' ' + want.style}, ${want.px} px (${(want.px * d.heightMm / d.height).toFixed(1)} mm here), ASCII` + (letters ? ' and ' + letters : '');
+        },
+        lackingText() {
+            const lacking = this.keyboardStore.fontLacking;
+            return lacking.length ? `the font has no ${[...new Set(lacking.flatMap(l => l.chars))].join(' ')}` : '';
+        },
+        shownFonts() {
+            const f = this.fontFilter.toLowerCase();
+            return this.computer.filter(c => !f || c.fullName.toLowerCase().includes(f)).slice(0, 400);
         },
         density() {
             const d = this.keyboardStore.edit.display;
@@ -62,6 +93,18 @@ const KeyboardProps = {
         }
     },
     methods: {
+        async listComputerFonts() {
+            this.computer = await this.keyboardStore.computerFonts();
+        },
+        pickComputerFont(postscript) {
+            const data = this.computer.find(c => c.postscriptName === postscript);
+            if (data) this.keyboardStore.useComputerFont(data);
+        },
+        fontFile(event) {
+            const file = event.target.files[0];
+            event.target.value = '';
+            if (file) this.keyboardStore.openFontFile(file);
+        },
         // a size of the layout, tenths of a millimetre, shown and given in millimetres
         mm(name) {
             return (this.keyboardStore.layout[name] / 10).toFixed(1);
@@ -141,8 +184,25 @@ const KeyboardProps = {
                     <select class="form-select form-select-sm" v-model="keyboardStore.edit.field" @change="keyboardStore.save()">
                         <option value="top">at the top</option><option value="bottom">at the bottom</option><option value="none">none</option>
                     </select></label>
-                <label title="Размер шрифта надписей в пикселях дисплея — как у шрифта DGX, который даст программа">font px <input type="number" class="form-control form-control-sm" v-model.number="keyboardStore.edit.fontPx" @change="keyboardStore.save()"></label>
             </div>
+        </section>
+        <section>
+            <h6 title="Шрифт надписей: свой браузера, шрифт компьютера (Chrome, Edge), файла TTF/OTF или шрифт DGX (.c от font2c, .json от dgx_ge_font.py) — его надписи пиксель в пиксель, как на плате; клавиши без букв шрифта — красный уголок">Labels</h6>
+            <div class="kb-note">{{ fontText }}</div>
+            <div class="kb-presets mt-1">
+                <button class="btn btn-outline-secondary btn-sm" title="Шрифты этого компьютера: Chrome и Edge, браузер спросит разрешение" @click="listComputerFonts">Computer…</button>
+                <label class="btn btn-outline-secondary btn-sm mb-0" title="Файл шрифта: TTF, OTF, TTC — или шрифт DGX: .c от font2c, .json от dgx_ge_font.py (или бросить файл на окно)">File…<input type="file" accept=".ttf,.otf,.ttc,.woff,.woff2,.c,.json" hidden @change="fontFile"></label>
+                <button class="btn btn-outline-secondary btn-sm" title="Свой шрифт браузера, как без выбора" :disabled="!keyboardStore.layout.font" @click="keyboardStore.useBrowserFont()">Browser</button>
+            </div>
+            <div v-if="computer.length" class="mt-1">
+                <input class="form-control form-control-sm" placeholder="filter" v-model="fontFilter" title="Часть имени шрифта">
+                <select class="form-select form-select-sm kb-fonts" size="8" @change="pickComputerFont($event.target.value)" title="Шрифт компьютера для надписей">
+                    <option v-for="c in shownFonts" :key="c.postscriptName" :value="c.postscriptName">{{ c.fullName }}</option>
+                </select>
+            </div>
+            <label v-if="labelFont.kind !== 'dgx'" class="kb-row" title="Размер шрифта в пикселях дисплея: таким его сделает font2c">font px <input type="number" class="form-control form-control-sm" :value="labelFont.px" @change="keyboardStore.setFontPx(Number($event.target.value))"></label>
+            <div class="kb-note" v-if="buildText" title="Что нужно сборке: файл шрифта находится по PostScript-имени, font2c делает его этого размера с буквами раскладки">{{ buildText }}</div>
+            <div class="kb-note kb-lacking" v-if="lackingText">{{ lackingText }}</div>
         </section>
         <section>
             <h6 title="Размеры раскладки в миллиметрах: на любом дисплее клавиша того же размера под пальцем">Layout</h6>

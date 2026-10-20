@@ -675,6 +675,25 @@ cc font2c.c -o font2c $(pkg-config --cflags --libs freetype2)
 ./font2c DejaVuSans.ttf 30 0x20 0x7e 0xa0 0xff 0x20ac 0x20ac              # ASCII, ä ö ü ß and the rest of Latin-1, €
 ```
 
+The editor draws the labels in the font chosen there: a font of the
+computer, of a file, or a font of DGX (its C), the last pixel for pixel as
+the board draws it, and it marks the keys whose letters the font has not. The
+font is saved with the layout (`"font"`): a font of DGX by its name, or a
+face of a font file by its family, style and PostScript name at a size in
+pixels. The build finds that face by its PostScript name and has font2c make
+it with the letters of the layout:
+
+```sh
+python3 tools/keyboard_blob.py --letters keys.txt main/keys.json
+./font2c -f keys.txt "$(fc-list -f '%{file}\n' ':postscriptname=DejaVuSans' | head -n1)" 30 0x20 0x7e
+```
+
+`fc-list` with the name in the pattern gives only that face; `fc-match`
+gives another font for a name it does not know. A game of DGX-GE has its
+fonts made by its table (`tools/dgx_ge_fonts.py table`): give it the layout
+among the texts (`--text main/keys.json`), and the font the keyboard is given
+has its letters, one font of a face at a size for all that use it.
+
 ### Rotate the screen
 
 Nothing to do: the pointer takes the orientation of the screen at every

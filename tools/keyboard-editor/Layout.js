@@ -130,6 +130,9 @@ const KeyboardLayout = (() => {
                 });
             });
         });
+        const font = layout.font;
+        if (font && !(typeof font.dgx === 'string' && font.dgx) && !((font.postscript || font.family) && font.px >= 1))
+            warning('the font of the labels: neither a font of DGX by its name nor a face of a file at a size in pixels');
         if (display && !out.some(o => o.level === 'error') && !place(layout, display)) error(`it does not fit the display of ${display.width}x${display.height}`);
         return out;
     }
@@ -142,6 +145,13 @@ const KeyboardLayout = (() => {
         return out;
     }
     const inline = value => '{' + Object.entries(value).map(([n, v]) => JSON.stringify(n) + ': ' + JSON.stringify(v)).join(', ') + '}';
+    // the font the labels are made for, its fields in the order of the format: a font of DGX by its name, or a face of a
+    // font file (as fontconfig names it) at a size in pixels of the display
+    function cleanFont(font) {
+        const out = {};
+        for (const name of ['dgx', 'family', 'style', 'postscript', 'px']) if (font[name] !== undefined && font[name] !== '') out[name] = font[name];
+        return out;
+    }
 
     // the layout as the file of the editor: one row of keys a line, so that it reads and compares well
     function toJson(layout) {
@@ -149,6 +159,7 @@ const KeyboardLayout = (() => {
         lines.push(`    "format": ${JSON.stringify(Format.name)},`, `    "version": ${Format.version},`, `    "name": ${JSON.stringify(layout.name || '')},`);
         for (const name of ['keyH', 'unitW', 'gap', 'margin', 'radius']) lines.push(`    ${JSON.stringify(name)}: ${layout[name]},`);
         lines.push('    "theme": ' + inline({ backTop: t.backTop, backBottom: t.backBottom, key: t.key, keySpecial: t.keySpecial, keyPressed: t.keyPressed, label: t.label }) + ',');
+        if (layout.font) lines.push('    "font": ' + inline(cleanFont(layout.font)) + ',');
         lines.push('    "pages": [');
         layout.pages.forEach((page, p) => {
             lines.push(`        {"name": ${JSON.stringify(page.name || '')}, "rows": [`);

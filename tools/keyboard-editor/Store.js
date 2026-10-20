@@ -1,6 +1,16 @@
 // The state of the editor: the layout edited (KeyboardLayout's), how it is seen, the trial of typing; undo and redo;
 // kept in the browser between visits.
 const StorageKey = 'dgx-di-keyboard-editor';
+// the C of the font of DGX the labels were last drawn in, kept apart (it may not fit; the layout is kept anyway)
+const FontStorageKey = StorageKey + '-font';
+// the browser's own font of the labels, as close to the program's DGX font as the browser has
+const BrowserFont = '"DejaVu Sans", Verdana, sans-serif';
+// what a font of the labels is known by: a font of DGX by its name, a face of a file by its PostScript name
+const fontIdentity = font => !font ? '' : font.dgx ? 'dgx:' + font.dgx : 'face:' + (font.postscript || `${font.family} ${font.style}`);
+// the fonts loaded in the page, by what they are known by: {kind ('system', 'file', 'dgx'), css (a family of the
+// page) or dgx (its glyphs), has (whether it has a code point; null: not told)}; not kept by Vue, its count is
+const LoadedFonts = new Map();
+let fontAliases = 0;
 
 // themes to begin a look of one's own with: the band from top to bottom, the keys, the labels
 const ThemePresets = {
@@ -27,6 +37,7 @@ const useKeyboardStore = Pinia.defineStore('keyboard', {
                 mode: 'edit'    // or 'try': the keys type into the field
             },
             trial: { text: '', shift: false, page: 0, flash: '', pressed: -1 },
+            fontsLoaded: 0,  // how many fonts LoadedFonts has: what the font of the labels depends on
             history: [],
             future: [],
             message: ''
@@ -44,7 +55,7 @@ const useKeyboardStore = Pinia.defineStore('keyboard', {
             const d = state.edit.display;
             if (state.edit.field === 'none') return null;
             const mm = KeyboardLayout.pixels(10, d.height, d.heightMm) || 1;
-            const h = Math.max(Math.round(state.edit.fontPx * 1.6), 8 * mm), x = Math.round(d.width * 0.05);
+            const h = Math.max(Math.round(this.labelFont.px * 1.6), 8 * mm), x = Math.round(d.width * 0.05);
             return { x, y: state.edit.field === 'top' ? 4 * mm : d.height - h - 4 * mm, w: d.width - 2 * x, h };
         },
         band(state) {
@@ -57,8 +68,27 @@ const useKeyboardStore = Pinia.defineStore('keyboard', {
             const row = this.page.rows[state.edit.row];
             return row ? row[state.edit.key] : undefined;
         },
+        // the font the labels are drawn in: the layout's if it is loaded here, else the browser's own at its size
+        labelFont(state) {
+            const want = state.layout.font, loaded = state.fontsLoaded >= 0 && LoadedFonts.get(fontIdentity(want));
+            const px = want && want.px || state.edit.fontPx;
+            if (loaded && loaded.kind === 'dgx') return { kind: 'dgx', dgx: loaded.dgx, has: loaded.has, px: loaded.dgx.size };
+            if (loaded) return { kind: loaded.kind, css: `"${loaded.css}"`, has: loaded.has, px };
+            return { kind: 'browser', css: BrowserFont, has: null, px, missing: !!want };
+        },
+        // the keys whose labels have letters the font has not: [{page, row, key, chars}]
+        fontLacking() {
+            const has = this.labelFont.has;
+            return has ? KeyboardFonts.lacking(this.layout, has) : [];
+        },
         problems(state) {
-            return KeyboardLayout.problems(state.layout, state.edit.display);
+            const out = KeyboardLayout.problems(state.layout, state.edit.display), want = state.layout.font;
+            if (want && this.labelFont.missing) out.push({ level: 'warning', text: `the font ${want.dgx || [want.family, want.style].filter(Boolean).join(' ')} is not opened here: the labels in the browser's` });
+            for (const l of this.fontLacking) {
+                const page = state.layout.pages[l.page];
+                out.push({ level: 'warning', text: `page ${l.page + 1} (${page.name || 'no name'}), row ${l.row + 1}, key ${l.key + 1}: the font has no ${l.chars.join(' ')}` });
+            }
+            return out;
         }
     },
     actions: {
@@ -75,6 +105,7 @@ const useKeyboardStore = Pinia.defineStore('keyboard', {
             this.layout = layout;
             this.keepChoice();
             this.save();
+            this.restoreFont();
         },
         remember() {
             this.history.push(JSON.stringify(this.layout));
@@ -87,6 +118,7 @@ const useKeyboardStore = Pinia.defineStore('keyboard', {
             this.layout = JSON.parse(this.history.pop());
             this.keepChoice();
             this.save();
+            this.restoreFont();
         },
         redo() {
             if (!this.future.length) return;
@@ -94,6 +126,7 @@ const useKeyboardStore = Pinia.defineStore('keyboard', {
             this.layout = JSON.parse(this.future.pop());
             this.keepChoice();
             this.save();
+            this.restoreFont();
         },
         // the page and the key chosen still there
         keepChoice() {
@@ -150,6 +183,139 @@ const useKeyboardStore = Pinia.defineStore('keyboard', {
             this.trial = { text: '', shift: false, page: 0, flash: '', pressed: -1 };
             this.keepChoice();
             this.message = `${name}: opened`;
+        },
+        // --- the font of the labels: the browser's own, a font of the computer, of a file, a font of DGX
+
+        setFontPx(px) {
+            if (!(px >= 1)) return;
+            const want = this.layout.font;
+            if (want && !want.dgx) this.change(l => { l.font.px = Math.round(px); });
+            else this.edit.fontPx = Math.round(px), this.save();
+        },
+        useBrowserFont() {
+            this.change(l => { delete l.font; });
+            this.message = 'the labels in the browser\'s own font';
+        },
+        // a font of DGX of its C (font2c) or JSON (dgx_ge_font.py): the labels drawn in it pixel for pixel
+        useDgxFont(source, name) {
+            let dgx;
+            try {
+                dgx = typeof source === 'string' && !source.trimStart().startsWith('{') ? KeyboardFonts.fromC(source) : KeyboardFonts.fromJson(typeof source === 'string' ? JSON.parse(source) : source);
+            } catch (e) {
+                return this.message = `${name}: ${e.message}`;
+            }
+            LoadedFonts.set('dgx:' + dgx.name, { kind: 'dgx', dgx, has: cp => dgx.glyphs.has(cp) });
+            ++this.fontsLoaded;
+            try {
+                localStorage.setItem(FontStorageKey, typeof source === 'string' ? source : JSON.stringify(source));
+            } catch (e) {
+                localStorage.removeItem(FontStorageKey);
+            }
+            this.change(l => { l.font = { dgx: dgx.name }; });
+            this.message = `${name}: ${dgx.name}, a font of DGX, ${dgx.glyphs.size} letters, ${dgx.size} px a line: the labels as DGX draws them`;
+        },
+        // a font file's data (a TTF, an OTF, a collection: of the face named), as a font of the page; its names and
+        // letters as its tables tell, if it tells
+        async useFontData(buffer, kind, name, postscript) {
+            let face = { names: {}, has: null };
+            try {
+                face = KeyboardFonts.sfnt(buffer, postscript);
+            } catch (e) {
+                // a WOFF or a font of another kind: shown, its letters not known
+            }
+            const css = `kb-label-${++fontAliases}`, names = face.names;
+            try {
+                const f = new FontFace(css, buffer);
+                await f.load();
+                document.fonts.add(f);
+            } catch (e) {
+                return this.message = `${name}: the browser does not take it as a font (${e.message})`;
+            }
+            const want = { family: names.family || name.replace(/\.[^.]*$/, ''), style: names.style || '', postscript: names.postscript || postscript || '' };
+            LoadedFonts.set(fontIdentity(want), { kind, css, has: face.has });
+            ++this.fontsLoaded;
+            this.change(l => { l.font = { ...want, px: (l.font && !l.font.dgx && l.font.px) || this.edit.fontPx }; });
+            this.message = `${name}: ${want.family} ${want.style}` + (face.has ? '' : ', its letters not known') + (kind === 'file' ? '; its file is found again for the build by its names' : '');
+        },
+        // a file of a font: by its name, a font of DGX (.c; .json, if not a layout) or a font file
+        async openFontFile(file) {
+            if (/\.c$/i.test(file.name)) return this.useDgxFont(await file.text(), file.name);
+            if (/\.json$/i.test(file.name)) {
+                const text = await file.text();
+                let json = null;
+                try {
+                    json = JSON.parse(text);
+                } catch (e) {
+                    return this.message = `${file.name}: not JSON (${e.message})`;
+                }
+                return json && json.format === KeyboardLayout.Format.name ? this.open(text, file.name) : this.useDgxFont(json, file.name);
+            }
+            return this.useFontData(await file.arrayBuffer(), 'file', file.name);
+        },
+        // the fonts of the computer (Chrome and Edge, once allowed; by a click): [FontData], or none and why
+        async computerFonts() {
+            if (typeof window.queryLocalFonts !== 'function') {
+                this.message = 'this browser lists no fonts of the computer (Chrome and Edge do); a font file opens in any';
+                return [];
+            }
+            try {
+                return await window.queryLocalFonts();
+            } catch (e) {
+                this.message = `the fonts of the computer not given: ${e.message}`;
+                return [];
+            }
+        },
+        async useComputerFont(data) {
+            return this.useFontData(await (await data.blob()).arrayBuffer(), 'system', data.fullName, data.postscriptName);
+        },
+        // the layout's font loaded again (after a visit, a file, undo): a font of DGX from what the browser kept, a face of
+        // the computer by its PostScript name (its letters, if the fonts of the computer are allowed already)
+        async restoreFont() {
+            const want = this.layout.font, id = fontIdentity(want);
+            if (!want || LoadedFonts.has(id)) return;
+            if (want.dgx) {
+                try {
+                    const kept = localStorage.getItem(FontStorageKey);
+                    const dgx = kept && (kept.trimStart().startsWith('{') ? KeyboardFonts.fromJson(JSON.parse(kept)) : KeyboardFonts.fromC(kept));
+                    if (dgx && dgx.name === want.dgx) {
+                        LoadedFonts.set(id, { kind: 'dgx', dgx, has: cp => dgx.glyphs.has(cp) });
+                        return ++this.fontsLoaded;
+                    }
+                } catch (e) {
+                    // not kept, or not of that font
+                }
+                return this.message = `${want.dgx}: open its C (font2c) again to see the labels in it`;
+            }
+            if (!want.postscript) return;
+            try {
+                if (typeof window.queryLocalFonts === 'function') {
+                    const [data] = await window.queryLocalFonts({ postscriptNames: [want.postscript] });
+                    if (data) {
+                        let face = { has: null };
+                        try {
+                            face = KeyboardFonts.sfnt(await (await data.blob()).arrayBuffer(), want.postscript);
+                        } catch (e) {
+                            // shown all the same
+                        }
+                        const css = `kb-label-${++fontAliases}`, f = new FontFace(css, `local("${want.postscript}")`);
+                        await f.load();
+                        document.fonts.add(f);
+                        LoadedFonts.set(id, { kind: 'system', css, has: face.has });
+                        return ++this.fontsLoaded;
+                    }
+                }
+            } catch (e) {
+                // the fonts of the computer not allowed yet: by CSS's local() below
+            }
+            try {
+                const css = `kb-label-${++fontAliases}`, f = new FontFace(css, `local("${want.postscript}")`);
+                await f.load();
+                document.fonts.add(f);
+                LoadedFonts.set(id, { kind: 'system', css, has: null });
+                ++this.fontsLoaded;
+            } catch (e) {
+                this.message = `${want.family} ${want.style}: not on this computer, the labels in the browser's own font`;
+            }
         },
         // a layout of a template to begin with (KeyboardLayout.Templates; the code of digits if none is named)
         newLayout(name) {

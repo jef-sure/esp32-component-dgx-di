@@ -55,8 +55,10 @@ const KeyboardEdit = {
             this.$nextTick(() => this.$refs.download.click());
             this.keyboardStore.message = `saved as ${this.fileName}: python3 tools/keyboard_blob.py ${this.fileName} out.kbd makes the blob`;
         },
+        // a layout of JSON; a font (a file of TrueType or OpenType, a font of DGX: its C or the JSON of dgx_ge_font.py)
         read(file) {
             if (!file) return;
+            if (/\.(ttf|otf|ttc|woff2?|c)$/i.test(file.name) || /\.json$/i.test(file.name)) return this.keyboardStore.openFontFile(file);
             const reader = new FileReader();
             reader.onload = () => this.keyboardStore.open(reader.result, file.name);
             reader.readAsText(file);

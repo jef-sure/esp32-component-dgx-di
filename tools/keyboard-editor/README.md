@@ -10,9 +10,18 @@ Bootstrap come from a CDN.
   centimetres, the program's field (at the top, at the bottom or none) and
   the band of the keyboard with its keys, placed and drawn as DGX-DI places
   and draws them. The colors are those RGB565 makes of the theme's, the
-  signs of erase, done, cancel and shift the same shapes. The labels are in
-  a font of the browser, of the size given: as large as the DGX font the
-  program will give.
+  signs of erase, done, cancel and shift the same shapes.
+- **The labels.** In the browser's own font at the size given, or in one
+  chosen: a font of the computer (Computer…: Chrome and Edge list them, once
+  allowed), a font file (File…, or dropped: TTF, OTF, TTC), or a font of DGX
+  (its C made by font2c, or the JSON of DGX-GE's `dgx_ge_font.py`). A font of
+  DGX is drawn pixel for pixel where DGX-DI draws it; a font of the computer
+  or of a file at its size, its pixels lit or not as DGX's are. A key whose
+  letters the font has not is marked red in its corner and told among the
+  problems (the letters of a font of DGX are its glyphs; of a font file, its
+  table of characters). The font is saved with the layout: a font of DGX by
+  its name, a face of a file by its family, style and PostScript name at its
+  size in pixels, with what the build needs below it.
 - **The layout.** Its sizes in millimetres: the height of a key, its width
   at most (the longest row of all pages makes it narrower to fit the
   display), the gaps, the margin of the band, the rounding of the corners.
@@ -78,8 +87,13 @@ page, 48 keys a page.
 - `test.js`, with Node: the editor's geometry against DGX-DI's own on the
   ready layouts and several displays, the ready layouts written as the
   editor writes them, and the templates (nothing wrong on the displays of the
-  boards, and `keyboard_blob.py` makes blobs of them). `make -C test/host`
-  runs it (with the C that makes the geometry to compare).
+  boards, and `keyboard_blob.py` makes blobs of them and gives the same
+  letters); fonts of DGX read of their C and drawn as DGX draws them: the
+  bounds and pixels of strings and the labels of the Latin keyboard, key by
+  key, against `test/host/font_dump`; the names and letters of a TTF.
+  `make -C test/host` runs it (with the C that makes what it compares).
 - `test.html`, in a browser: the editor's actions on the layout it begins
-  with, the workbench drawn meanwhile, the menu of templates. The line on top
-  says how it went.
+  with, the workbench drawn meanwhile, the menu of templates, the fonts of
+  the labels (a font of DGX, its keys of letters it has not marked, the
+  browser's own again, a face of the computer). The line on top says how it
+  went.

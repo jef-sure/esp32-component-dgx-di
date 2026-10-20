@@ -1,7 +1,9 @@
 // The display in its own pixels: the program's screen (a grid of centimetres, its field), the band of the keyboard and
 // its keys drawn as DGX-DI draws them (the colors as RGB565 makes them, the band's colors mixed row by row as the C mixes
-// them, the signs of the same pieces); the labels in a font of the browser, of the size the program's DGX font has.
-// Editing: a click chooses a key. Trying: the keys type into the field, erase held again and again.
+// them, the signs of the same pieces); the labels in the layout's font: a font of DGX pixel for pixel where DGX-DI puts
+// them, a font of the computer or of a file (or the browser's own) at its size, its pixels lit or not as DGX's are; a key
+// whose letters the font has not marked red in its corner. Editing: a click chooses a key. Trying: the keys type into
+// the field, erase held again and again.
 const KeyboardCanvas = {
     data() {
         return { repeat: null, repeated: false };
@@ -11,7 +13,7 @@ const KeyboardCanvas = {
         // what the picture depends on
         drawKey() {
             const s = this.keyboardStore;
-            return JSON.stringify([s.layout, s.edit, s.trial]);
+            return JSON.stringify([s.layout, s.edit, s.trial, s.fontsLoaded]);
         },
         style() {
             const s = this.keyboardStore, d = s.edit.display;
@@ -41,8 +43,12 @@ const KeyboardCanvas = {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.07)';
             for (let mm = 10; mm < d.widthMm; mm += 10) ctx.fillRect(Math.round(mm * d.width / d.widthMm), 0, 1, d.height);
             for (let mm = 10; mm < d.heightMm; mm += 10) ctx.fillRect(0, Math.round(mm * d.height / d.heightMm), d.width, 1);
-            ctx.font = `${s.edit.fontPx}px "DejaVu Sans", Verdana, sans-serif`;
-            const cap = Math.round(ctx.measureText('H').actualBoundingBoxAscent || s.edit.fontPx * 0.73);
+            const lf = s.labelFont, dgx = lf.kind === 'dgx' ? lf.dgx : null, F = KeyboardFonts;
+            // the labels of a font of the page drawn apart, then made pixels lit or not, as DGX's are
+            const pix = dgx ? null : this.pixLayer(d.width, d.height), pc = pix && pix.getContext('2d');
+            if (pc) pc.clearRect(0, 0, d.width, d.height), pc.font = `${lf.px}px ${lf.css}`;
+            const capOf = () => dgx ? F.bounds(dgx, 'H') : { top: -Math.round(pc.measureText('H').actualBoundingBoxAscent || lf.px * 0.73), height: Math.round(pc.measureText('H').actualBoundingBoxAscent || lf.px * 0.73) };
+            const cap = capOf(), baseline = (y, h) => y + Math.trunc(h / 2) - cap.top - Math.trunc(cap.height / 2);
             const field = s.fieldRect;
             if (field) {
                 const t = s.trial;
@@ -50,16 +56,22 @@ const KeyboardCanvas = {
                 ctx.fillRect(field.x, field.y, field.w, field.h);
                 ctx.fillStyle = '#5c6b7d';
                 ctx.fillRect(field.x, field.y + field.h - 2, field.w, 2);
-                ctx.fillStyle = '#e8eef5';
-                ctx.textAlign = 'left';
                 const text = trying ? t.text + '|' : 'the program\'s field';
-                ctx.fillText(text, field.x + Math.round(s.edit.fontPx / 2), field.y + Math.round(field.h / 2 + cap / 2), field.w - s.edit.fontPx);
+                if (dgx) {
+                    ctx.fillStyle = '#e8eef5';
+                    F.draw(ctx, dgx, field.x + Math.round(dgx.size / 2), baseline(field.y, field.h), text);
+                } else {
+                    pc.fillStyle = '#e8eef5', pc.textAlign = 'left';
+                    pc.fillText(text, field.x + Math.round(lf.px / 2), baseline(field.y, field.h), field.w - lf.px);
+                }
             }
             const band = s.band;
             if (!band) {
                 ctx.fillStyle = '#ff6b6b';
+                ctx.font = `20px ${BrowserFont}`;
                 ctx.textAlign = 'center';
                 ctx.fillText('the keys do not fit this display', d.width / 2, d.height / 2);
+                if (pc) this.harden(pc, d.width, d.height), ctx.drawImage(pix, 0, 0);
                 return;
             }
             const theme = s.layout.theme, c565 = name => L.rgb565(theme[name]);
@@ -69,22 +81,49 @@ const KeyboardCanvas = {
                 ctx.fillRect(band.x, band.y + i, band.w, 1);
             }
             const color = name => L.hex565(c565(name)), shift = trying && s.trial.shift;
+            if (pc) pc.fillStyle = color('label'), pc.textAlign = 'center';
             s.keys.forEach((k, i) => {
                 const code = L.code(k.key), plain = !L.special(code) || (k.key.action === 'shift' && shift);
                 ctx.fillStyle = color(trying && s.trial.pressed === i ? 'keyPressed' : plain ? 'key' : 'keySpecial');
                 this.rounded(ctx, k.x, k.y, k.w, k.h, band.radius);
                 const label = L.label(k.key, shift), cx = k.x + Math.trunc(k.w / 2), cy = k.y + Math.trunc(k.h / 2);
                 ctx.fillStyle = ctx.strokeStyle = color('label');
-                if (label) {
-                    ctx.textAlign = 'center';
-                    ctx.fillText(label, cx, cy + Math.round(cap / 2));
-                } else if (!k.key.label) this.sign(ctx, code, cx, cy, k.h);
+                if (label && dgx) {
+                    const at = F.labelAt(dgx, k, band.keyH, label);
+                    F.draw(ctx, dgx, at.x, at.y, label);
+                } else if (label) pc.fillText(label, cx, baseline(k.y, band.keyH));
+                else if (!k.key.label) this.sign(ctx, code, cx, cy, k.h);
+            });
+            if (pc) this.harden(pc, d.width, d.height), ctx.drawImage(pix, 0, 0);
+            // the keys of letters the font has not; the key chosen
+            const lacking = new Set(s.fontLacking.filter(l => l.page === s.pageIndex).map(l => l.row + ',' + l.key));
+            s.keys.forEach(k => {
+                if (lacking.has(k.row + ',' + k.index)) {
+                    const m = Math.max(6, Math.round(k.h / 5));
+                    ctx.fillStyle = '#ff4d4f';
+                    ctx.beginPath();
+                    ctx.moveTo(k.x + k.w - m, k.y), ctx.lineTo(k.x + k.w, k.y), ctx.lineTo(k.x + k.w, k.y + m);
+                    ctx.closePath();
+                    ctx.fill();
+                }
                 if (!trying && k.row === s.edit.row && k.index === s.edit.key && s.pageIndex === s.edit.page) {
                     ctx.strokeStyle = '#ffcc00';
                     ctx.lineWidth = Math.max(2, Math.round(d.width / 400));
                     ctx.strokeRect(k.x + 1, k.y + 1, k.w - 2, k.h - 2);
                 }
             });
+        },
+        // a canvas as large as the display for the labels of a font of the page, kept between drawings
+        pixLayer(w, h) {
+            if (!this.pix) this.pix = document.createElement('canvas');
+            if (this.pix.width !== w || this.pix.height !== h) this.pix.width = w, this.pix.height = h;
+            return this.pix;
+        },
+        // its pixels lit or not, as a font of DGX has them: at least half covered, lit
+        harden(pc, w, h) {
+            const img = pc.getImageData(0, 0, w, h), p = img.data;
+            for (let i = 3; i < p.length; i += 4) p[i] = p[i] >= 128 ? 255 : 0;
+            pc.putImageData(img, 0, 0);
         },
         // a key's shape: rounded() of the C
         rounded(ctx, x, y, w, h, r) {

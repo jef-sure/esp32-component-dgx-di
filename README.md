@@ -84,14 +84,17 @@ dependencies:
 ```
 
 It brings DGX along (`jef-sure/dgx` 0.6.6 or a later 0.6: the pad needs the
-overlay layer of 0.6.6). It needs ESP-IDF 5.3 or later, and was built with
-5.5.5, 6.0.3 and 6.1 for the ESP32 and the ESP32-P4.
+overlay layer of 0.6.6): the component manager puts both into
+`managed_components/`, and that is all. It needs ESP-IDF 5.3 or later, and
+was built with 5.5.5, 6.0.3 and 6.1 for the ESP32 and the ESP32-P4.
 
 To work on DGX-DI itself, check the repository out under the project's
-`components/` instead; the component manager still brings DGX for it. A
-checkout of DGX beside it must sit in `components/jef-sure__dgx`: DGX-DI
-requires DGX by the name the registry gives it, and a local component of that
-name takes the place of the registry's.
+`components/` instead; the component manager still brings DGX into
+`managed_components/`. Only a checkout of DGX of your own, in place of the
+registry's, must sit in a directory named `jef-sure__dgx`: in `components/`,
+or where an `override_path` of `main/idf_component.yml` points. DGX-DI
+requires DGX by the name the registry gives it, and ESP-IDF names a local
+component after its directory.
 
 ## A minimal example
 

@@ -700,6 +700,22 @@ DGX's own is taken as it is; a font of the program's own is given with
 `dgx_di_keyboard_font(keys keys.json FILE fonts/MyFont.c)`, its letters
 checked. DGX's font needs are told in its `docs/fonts-ru.md`.
 
+From 0.0.2, where the program made the font by hand (font2c of a TTF, the
+letters of the layout looked up), and gave it to `dgx_di_keyboard_open`:
+
+- open the layout in the editor, choose its font there and save it: a layout
+  of 0.0.2 names none, and `dgx_di_keyboard_font` stops with "names no font
+  of its labels" without one;
+- in the program's CMakeLists give the display once, `dgx_fonts_board(PIXELS
+  … MM …)`, and `dgx_di_keyboard_font(keys keys.json)` (a name of the
+  program's choice; DGX's need names are of the whole project);
+- give the keyboard `dgx_font_keys()` and `DGX_FONTS_BOARD_WIDTH_MM`,
+  `_HEIGHT_MM` instead of the font made by hand and the millimetres written
+  twice; drop the font's own `.c` from the program;
+- DGX 0.7.2 or later, from the registry; a checkout of DGX instead of it
+  needs `override_path` in `main/idf_component.yml`, or the registry's copy
+  is taken and `dgx_fonts_board` is an unknown command.
+
 ### Rotate the screen
 
 Nothing to do: the pointer takes the orientation of the screen at every

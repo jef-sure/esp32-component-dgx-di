@@ -8,9 +8,10 @@
   `dgx_ge_font.py`), drawn pixel for pixel where DGX-DI draws it (compared
   with DGX's own drawing, glyph and label). A key whose letters the font has
   not is marked and told among the problems. The font is saved with the
-  layout (`"font"`), with what the build needs to find it again by its
-  PostScript name; `keyboard_blob.py --letters` gives a layout's letters for
-  `font2c -f`. The blob is the same as before.
+  layout (`"font"`: a face by its PostScript name at a size in millimetres,
+  or a font of DGX by its name), as DGX's font needs read it (DGX 0.7.2:
+  `dgx_font_need(keys LAYOUT keys.json)` makes it with the letters of the
+  labels). The blob is the same as before.
 
 ## 0.0.2 - 2026-10-20
 

@@ -38,18 +38,18 @@ const KeyboardProps = {
         // the font of the labels in words: which, how large, whether it is here
         fontText() {
             const s = this.keyboardStore, want = s.layout.font, lf = s.labelFont;
-            if (!want) return `the browser's own, ${lf.px} px: as large as the DGX font the program gives`;
+            if (!want) return `the browser's own, ${lf.mm} mm (${lf.px} px here); choose a font: the build needs one`;
             if (want.dgx) return lf.kind === 'dgx' ? `${want.dgx}, a font of DGX: ${lf.dgx.glyphs.size} letters, ${lf.dgx.size} px a line, drawn as on the board` : `${want.dgx}, a font of DGX: not opened here, open its C again`;
             const name = [want.family, want.style].filter(Boolean).join(' ');
-            return lf.kind === 'browser' ? `${name}: not on this computer, the browser's own instead` : `${name}, ${lf.px} px` + (lf.has ? '' : ', its letters not known');
+            return lf.kind === 'browser' ? `${name}: not on this computer, the browser's own instead` : `${name}, ${lf.mm} mm (${lf.px} px here)` + (lf.has ? '' : ', its letters not known');
         },
-        // what the build needs: the face found by its PostScript name, its size, the letters past ASCII
+        // what the build asks DGX (0.7.2 and later) for: the font of the layout, with the letters of its labels
         buildText() {
             const s = this.keyboardStore, want = s.layout.font, d = s.edit.display;
             if (!want) return '';
-            if (want.dgx) return `the program gives the keyboard ${want.dgx}()`;
-            const letters = KeyboardFonts.letters(s.layout);
-            return `for the build: ${want.postscript ? 'fc-list :postscriptname=' + want.postscript : want.family + ' ' + want.style}, ${want.px} px (${(want.px * d.heightMm / d.height).toFixed(1)} mm here), ASCII` + (letters ? ' and ' + letters : '');
+            const board = `dgx_fonts_board(PIXELS ${d.width} ${d.height} MM ${d.widthMm} ${d.heightMm})`;
+            if (want.dgx) return `for the build: ${board}; dgx_font_need(keys LAYOUT keys.json) if ${want.dgx} is one of DGX's own fonts, dgx_font_need(keys FILE <its .c> TEXTS keys.json) if it is the program's; the keyboard is given dgx_font_keys()`;
+            return `for the build: ${board}; dgx_font_need(keys LAYOUT keys.json): ${want.postscript || want.family + ' ' + want.style} at ${want.mm || want.px + ' px'}${want.mm ? ' mm' : ''}, the letters of the labels; the keyboard is given dgx_font_keys()`;
         },
         lackingText() {
             const lacking = this.keyboardStore.fontLacking;
@@ -200,7 +200,7 @@ const KeyboardProps = {
                     <option v-for="c in shownFonts" :key="c.postscriptName" :value="c.postscriptName">{{ c.fullName }}</option>
                 </select>
             </div>
-            <label v-if="labelFont.kind !== 'dgx'" class="kb-row" title="Размер шрифта в пикселях дисплея: таким его сделает font2c">font px <input type="number" class="form-control form-control-sm" :value="labelFont.px" @change="keyboardStore.setFontPx(Number($event.target.value))"></label>
+            <label v-if="labelFont.kind !== 'dgx'" class="kb-row" title="Размер шрифта в миллиметрах, как и вся раскладка; в пиксели его переводит сборка DGX по ширине дисплея">font, mm <input type="number" step="0.1" class="form-control form-control-sm" :value="labelFont.mm" @change="keyboardStore.setFontMm(Number($event.target.value))"> <span class="kb-note">{{ labelFont.px }} px here</span></label>
             <div class="kb-note" v-if="buildText" title="Что нужно сборке: файл шрифта находится по PostScript-имени, font2c делает его этого размера с буквами раскладки">{{ buildText }}</div>
             <div class="kb-note kb-lacking" v-if="lackingText">{{ lackingText }}</div>
         </section>

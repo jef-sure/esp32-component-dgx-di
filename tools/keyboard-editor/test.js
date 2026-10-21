@@ -110,6 +110,11 @@ if (process.argv[4]) {
         if (face.names.family !== 'DejaVu Sans' || face.names.style !== 'Book' || face.names.postscript !== 'DejaVuSans') fail(`DejaVuSans.ttf: its names ${JSON.stringify(face.names)}`);
         if (!face.has(0x41) || !face.has(0x451) || !face.has(0xdf) || face.has(0xe000) || face.has(0x10ffff)) fail('DejaVuSans.ttf: the letters it has, not as told');
     }
+    // millimetres as pixels as DGX counts them: across, half to even; a layout of before keeps its pixels
+    const d10 = L.Displays[1], d7 = L.Displays[0];
+    if (L.mmToPx(4, d10) !== 24 || L.mmToPx(4.5, d7) !== 30 || L.mmToPx(2.5, { width: 10, widthMm: 10 }) !== 2 || L.mmToPx(3.5, { width: 10, widthMm: 10 }) !== 4)
+        fail(`mm as px: ${L.mmToPx(4, d10)} ${L.mmToPx(4.5, d7)} ${L.mmToPx(2.5, { width: 10, widthMm: 10 })} ${L.mmToPx(3.5, { width: 10, widthMm: 10 })}`);
+    if (L.fontPx({ postscript: 'X', px: 30 }, d10) !== 30 || L.fontPx({ postscript: 'X', mm: 4 }, d10) !== 24) fail('the pixels of a layout\'s font');
     // what a layout wants of a font: its letters past ASCII, the keys whose letters a font has not
     const de = L.template('german');
     if (F.letters(de) !== 'ÄÖÜßäöü€') fail(`the letters of German: ${F.letters(de)}`);

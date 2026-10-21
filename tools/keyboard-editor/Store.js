@@ -29,7 +29,7 @@ const useKeyboardStore = Pinia.defineStore('keyboard', {
             edit: {
                 display: { ...KeyboardLayout.Displays[0] },
                 field: 'top',   // the program's field in the picture: 'top', 'bottom' (the band then goes up), 'none'
-                fontPx: 30,     // the labels' font, pixels of the display: as the DGX font the program gives
+                fontMm: 4.5,    // the size of the browser's own font of the labels, millimetres, when the layout names none
                 zoom: 0,        // screen pixels a pixel of the display; 0: as fits
                 page: 0,        // the page shown
                 row: 0,         // the key chosen: its row and place in it
@@ -71,10 +71,11 @@ const useKeyboardStore = Pinia.defineStore('keyboard', {
         // the font the labels are drawn in: the layout's if it is loaded here, else the browser's own at its size
         labelFont(state) {
             const want = state.layout.font, loaded = state.fontsLoaded >= 0 && LoadedFonts.get(fontIdentity(want));
-            const px = want && want.px || state.edit.fontPx;
+            const d = state.edit.display, mm = want && !want.dgx ? want.mm || +(want.px * d.widthMm / d.width).toFixed(1) : state.edit.fontMm || 4.5;
+            const px = want && !want.dgx ? KeyboardLayout.fontPx(want, d) : KeyboardLayout.mmToPx(mm, d);
             if (loaded && loaded.kind === 'dgx') return { kind: 'dgx', dgx: loaded.dgx, has: loaded.has, px: loaded.dgx.size };
-            if (loaded) return { kind: loaded.kind, css: `"${loaded.css}"`, has: loaded.has, px };
-            return { kind: 'browser', css: BrowserFont, has: null, px, missing: !!want };
+            if (loaded) return { kind: loaded.kind, css: `"${loaded.css}"`, has: loaded.has, px, mm };
+            return { kind: 'browser', css: BrowserFont, has: null, px, mm, missing: !!want };
         },
         // the keys whose labels have letters the font has not: [{page, row, key, chars}]
         fontLacking() {
@@ -186,11 +187,12 @@ const useKeyboardStore = Pinia.defineStore('keyboard', {
         },
         // --- the font of the labels: the browser's own, a font of the computer, of a file, a font of DGX
 
-        setFontPx(px) {
-            if (!(px >= 1)) return;
-            const want = this.layout.font;
-            if (want && !want.dgx) this.change(l => { l.font.px = Math.round(px); });
-            else this.edit.fontPx = Math.round(px), this.save();
+        // the size of the labels' font, millimetres (a tenth a step); a layout of before loses its pixels
+        setFontMm(mm) {
+            if (!(mm > 0)) return;
+            const want = this.layout.font, tenths = Math.round(mm * 10) / 10;
+            if (want && !want.dgx) this.change(l => { l.font.mm = tenths; delete l.font.px; });
+            else this.edit.fontMm = tenths, this.save();
         },
         useBrowserFont() {
             this.change(l => { delete l.font; });
@@ -234,7 +236,9 @@ const useKeyboardStore = Pinia.defineStore('keyboard', {
             const want = { family: names.family || name.replace(/\.[^.]*$/, ''), style: names.style || '', postscript: names.postscript || postscript || '' };
             LoadedFonts.set(fontIdentity(want), { kind, css, has: face.has });
             ++this.fontsLoaded;
-            this.change(l => { l.font = { ...want, px: (l.font && !l.font.dgx && l.font.px) || this.edit.fontPx }; });
+            const d = this.edit.display, was = this.layout.font && !this.layout.font.dgx ? this.layout.font : null;
+            const mm = was ? was.mm || Math.round(was.px * d.widthMm / d.width * 10) / 10 : this.edit.fontMm || 4.5;
+            this.change(l => { l.font = { ...want, mm }; });
             this.message = `${name}: ${want.family} ${want.style}` + (face.has ? '' : ', its letters not known') + (kind === 'file' ? '; its file is found again for the build by its names' : '');
         },
         // a file of a font: by its name, a font of DGX (.c; .json, if not a layout) or a font file

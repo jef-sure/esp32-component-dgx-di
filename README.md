@@ -666,33 +666,35 @@ the format, or a layout past the limits (4 pages, 5 rows, 48 keys a page),
 is refused.
 
 The labels are drawn in the font the program gives, so letters past ASCII
-need a font that has them. DGX makes one of any TTF with its `font2c` (in
-the DGX component, `font2c/`), a `.c` and a `.h` of the font:
+need a font that has them. The editor draws the labels in the font chosen
+there: a font of the computer, of a file, or a font of DGX (its C), the last
+pixel for pixel as the board draws it, and it marks the keys whose letters
+the font has not. The font is saved with the layout (`"font"`): a face by its
+PostScript name at a size in millimetres, or a font of DGX by its name.
 
-```sh
-cc font2c.c -o font2c $(pkg-config --cflags --libs freetype2)
-./font2c DejaVuSans.ttf 30 0x20 0x7e 0x401 0x401 0x410 0x44f 0x451 0x451  # ASCII and Russian
-./font2c DejaVuSans.ttf 30 0x20 0x7e 0xa0 0xff 0x20ac 0x20ac              # ASCII, ä ö ü ß and the rest of Latin-1, €
+With DGX 0.7.2 or later the program has DGX make that font at its build, of
+the layout's face and size with the letters of its labels, and gives the
+display's size in millimetres once:
+
+```cmake
+# main/CMakeLists.txt, after idf_component_register (paths from this file)
+dgx_fonts_board(PIXELS 1024 600 MM 154 86)
+dgx_font_need(keys LAYOUT keys.json)
 ```
 
-The editor draws the labels in the font chosen there: a font of the
-computer, of a file, or a font of DGX (its C), the last pixel for pixel as
-the board draws it, and it marks the keys whose letters the font has not. The
-font is saved with the layout (`"font"`): a font of DGX by its name, or a
-face of a font file by its family, style and PostScript name at a size in
-pixels. The build finds that face by its PostScript name and has font2c make
-it with the letters of the layout:
+```c
+#include "dgx_fonts.h"
 
-```sh
-python3 tools/keyboard_blob.py --letters keys.txt main/keys.json
-./font2c -f keys.txt "$(fc-list -f '%{file}\n' ':postscriptname=DejaVuSans' | head -n1)" 30 0x20 0x7e
+dgx_di_keyboard_open(&kb, screen, DGX_FONTS_BOARD_WIDTH_MM, DGX_FONTS_BOARD_HEIGHT_MM, keys_start, keys_end - keys_start,
+                     dgx_font_keys(), &field);
 ```
 
-`fc-list` with the name in the pattern gives only that face; `fc-match`
-gives another font for a name it does not know. A game of DGX-GE has its
-fonts made by its table (`tools/dgx_ge_fonts.py table`): give it the layout
-among the texts (`--text main/keys.json`), and the font the keyboard is given
-has its letters, one font of a face at a size for all that use it.
+DGX finds the face on the computer the program is built on, by its
+PostScript name, and stops the build if the face is not there or has not a
+letter of the labels; it makes one font of a face at a size for everything
+that asks for it. A font of DGX's own is taken as it is; a font of the
+program's own is asked for with `dgx_font_need(keys FILE fonts/MyFont.c TEXTS
+keys.json)`. All of it is told in DGX's `docs/fonts-ru.md`.
 
 ### Rotate the screen
 

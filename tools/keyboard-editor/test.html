@@ -184,8 +184,10 @@ dgx_font_t* Tiny() {
             s.undo();
             ok(s.layout.font && s.labelFont.kind === 'dgx', 'undone: the font of DGX again');
             s.change(l => { l.font = { family: 'DejaVu Sans', style: 'Book', postscript: 'DejaVuSans', px: 30 }; });
-            s.setFontPx(36);
-            ok(s.layout.font.px === 36 && s.labelFont.px === 36, 'a face of a file made larger');
+            ok(s.labelFont.px === 30 && s.labelFont.mm === 4.5, 'a layout of before: its pixels, in millimetres ' + s.labelFont.mm);
+            s.setFontMm(5.4);
+            ok(s.layout.font.mm === 5.4 && s.layout.font.px === undefined && s.labelFont.px === 36, 'a face of a file made larger, in millimetres: ' + s.labelFont.px + ' px');
+            ok(/"font": \{"family": "DejaVu Sans", "style": "Book", "postscript": "DejaVuSans", "mm": 5\.4\}/.test(L.toJson(s.layout)), 'written with its millimetres');
             await s.restoreFont();
             await Vue.nextTick();
             ok(s.labelFont.kind === 'system' || /not on this computer/.test(s.message), 'a face of the computer by its PostScript name: ' + s.labelFont.kind);

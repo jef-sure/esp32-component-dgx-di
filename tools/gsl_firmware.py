@@ -28,7 +28,10 @@ def records(text, array):
     start = text.find(array + "[]")
     if start < 0:
         raise ValueError(f"no array {array}[]")
-    body = text[start:text.index("};", start)]
+    end = text.find("};", start)
+    if end < 0:
+        raise ValueError(f"{array}[] not closed with }};")
+    body = text[start:end]
     return [(int(reg, 0), int(word, 0)) for reg, word in re.findall(r"\{\s*(0x[0-9a-fA-F]+|\d+)\s*,\s*(0x[0-9a-fA-F]+|\d+)\s*\}", body)]
 
 
@@ -41,6 +44,8 @@ def pages(recs):
             out.append((word, []))
         elif not out:
             raise ValueError("a word before the first page")
+        elif word > 0xffffffff:
+            raise ValueError(f"page {out[-1][0]:#x}: the word {word:#x} at {reg:#x} past 32 bits")
         else:
             out[-1][1].append((reg, word))
     for page, words in out:
@@ -67,10 +72,10 @@ def main():
     m = re.fullmatch(r"(\d+)[xX](\d+)", a.range)
     if not m or not 0 < int(m[1]) <= 4096 or not 0 < int(m[2]) <= 4096:
         sys.exit(f"--range {a.range}: not WxH of 1..4096 each (12 bits)")
-    recs = records(open(a.header, encoding="utf-8", errors="replace").read(), a.array)
     try:
+        recs = records(open(a.header, encoding="utf-8", errors="replace").read(), a.array)
         pgs = pages(recs)
-    except ValueError as e:
+    except (OSError, ValueError) as e:
         sys.exit(f"{a.header}: {e}")
     data = blob(pgs, int(m[1]), int(m[2]))
     open(a.out, "wb").write(data)

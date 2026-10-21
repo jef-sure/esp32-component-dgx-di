@@ -93,6 +93,8 @@ def blob(layout):
     shapes = points = 0
     for k, item in enumerate(items):
         where = f"item {k + 1}"
+        if not isinstance(item, dict):
+            raise ValueError(f"{where}: an object, not {item!r}")
         kind = item.get("kind")
         if kind not in KINDS:
             raise ValueError(f"{where}: a kind of button, cross or stick, not {kind!r}")
@@ -124,6 +126,8 @@ def blob(layout):
             slots.append((shapes, len(shapes_of)))
             for i, sh in enumerate(shapes_of):
                 w = f"{where}, {name}, shape {i + 1}"
+                if not isinstance(sh, dict):
+                    raise ValueError(f"{w}: an object, not {sh!r}")
                 kind_of = sh.get("shape")
                 if kind_of not in SHAPES:
                     raise ValueError(f"{w}: a shape of {', '.join(SHAPES)}, not {kind_of!r}")

@@ -476,5 +476,39 @@ int main(void)
         CHECK(dgx_di_pointer_read(&p, 0xfffffffau) == 0);
         CHECK(dgx_di_pointer_read(&p, 14) == 1); /* 32 ms later */
     }
+
+    /*
+     * quick taps of two keys, 40 ms apart, up after 110 ms (a GSL3680 calibrated): the second a new finger, pressed
+     * where it lands, though the first is not up yet; with no numbers and with the number used again (a GT911's 0).
+     * A finger lost and seen again near (closer than an eighth of the smaller side): itself, held
+     */
+    for (int numbered = 0; numbered < 2; ++numbered) {
+        fake_t       f  = fake(0, 799, 0, 479);
+        dgx_screen_t s  = screen(800, 480, LR, TB, false);
+        const int    id = numbered ? 0 : DGX_DI_NO_ID;
+        dgx_di_pointer_init(&p, &f.device, 0, &s);
+        dgx_di_pointer_debounce(&p, 0, 110);
+        f.n = 1, f.points[0] = point(100, 240, id);
+        dgx_di_pointer_read(&p, 0), dgx_di_pointer_read(&p, 40), dgx_di_pointer_read(&p, 80);
+        const dgx_di_finger_t *a = &p.fingers[0];
+        CHECK(a->down && a->x == 100);
+        f.n = 0, dgx_di_pointer_read(&p, 100);
+        f.n = 1, f.points[0] = point(390, 240, id);
+        CHECK(dgx_di_pointer_read(&p, 120) == 2);
+        const dgx_di_finger_t *b = &p.fingers[1];
+        CHECK(a->down && !a->sees && a->x == 100 && b->pressed && b->x == 390);
+        /* held on and moving fast: b, the first lost still (of the same number, before it) */
+        f.points[0] = point(392, 241, id);
+        CHECK(dgx_di_pointer_read(&p, 140) == 2 && b->sees && b->x == 392 && !b->pressed && !a->sees && !p.fingers[2].sees);
+        f.points[0] = point(440, 241, id);
+        CHECK(dgx_di_pointer_read(&p, 160) == 2 && b->sees && b->x == 440 && !a->sees && !p.fingers[2].sees);
+        f.points[0] = point(390, 240, id);
+        dgx_di_pointer_read(&p, 180);
+        f.n = 0, dgx_di_pointer_read(&p, 200);
+        CHECK(dgx_di_pointer_read(&p, 210) == 1 && a->released && a->x == 100 && b->down);
+        /* b lost, back 50 px on: b, not a new one, no press again */
+        f.n = 1, f.points[0] = point(440, 240, id);
+        CHECK(dgx_di_pointer_read(&p, 240) == 1 && b->sees && b->x == 440 && !b->pressed && !p.fingers[0].sees);
+    }
     CHECK_DONE();
 }

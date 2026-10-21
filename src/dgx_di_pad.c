@@ -572,8 +572,8 @@ bool dgx_di_pad_show(dgx_di_pad_t *pad, dgx_screen_t *display, uint8_t alpha)
 
 void dgx_di_pad_hide(dgx_di_pad_t *pad, dgx_screen_t *display)
 {
-    (void)pad;
-    dgx_overlay_clear(display);
+    /* the display's overlay this pad's layer (the two share it); another's is left */
+    if (pad->layer && display->overlay && display->overlay == pad->layer->overlay) dgx_overlay_clear(display);
 }
 
 int dgx_di_pad_item_at(const dgx_di_pad_t *pad, int x, int y)

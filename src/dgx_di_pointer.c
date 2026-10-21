@@ -91,14 +91,19 @@ static int32_t far2(const dgx_di_finger_t *f, int x, int y)
     return dx * dx + dy * dy;
 }
 
+/* near: within a twentieth of the display's smaller side, closer than two fingertips can be; far: past an eighth */
+static int32_t side_of(const dgx_di_pointer_t *p)
+{
+    return p->screen->width < p->screen->height ? p->screen->width : p->screen->height;
+}
+
 /*
  * The finger other than i a point of i's number lies on, while far from i's last place: the point is that finger's
  * echo (a GT911 tears a read as a finger goes up: the number of the one going, the place of the one staying); -1 none.
- * Near: within a twentieth of the display's smaller side, closer than two fingertips can be; far: past an eighth.
  */
 static int echo_of(const dgx_di_pointer_t *p, int i, int x, int y)
 {
-    const int32_t side = p->screen->width < p->screen->height ? p->screen->width : p->screen->height, near = side / 20, far = side / 8;
+    const int32_t near = side_of(p) / 20, far = side_of(p) / 8;
     if (far2(&p->fingers[i], x, y) <= far * far) return -1;
     for (int j = 0; j < DGX_DI_FINGERS; ++j) {
         const dgx_di_finger_t *g = &p->fingers[j];
@@ -128,19 +133,24 @@ int dgx_di_pointer_read(dgx_di_pointer_t *p, uint32_t now_ms)
     for (int k = 0; k < n; ++k)
         for (int j = k + 1; j < n; ++j)
             if (pts[k].id != DGX_DI_NO_ID && pts[k].id == pts[j].id) return down;
-    int8_t echo[DGX_DI_FINGERS]; /* the finger a point is the echo of; -1: none */
+    /*
+     * A finger lost and held down for up_ms takes a point only near its last place: one far is a new finger (a quick
+     * tap of another key as the last goes up), with the number used again or with none
+     */
+    const int32_t lost = side_of(p) / 8;
+    int8_t        echo[DGX_DI_FINGERS]; /* the finger a point is the echo of; -1: none */
     for (int k = 0; k < n; ++k) {
         int x, y;
         dgx_di_pointer_map(p, pts[k].x, pts[k].y, &x, &y, &at[k][2]);
         at[k][0] = (int16_t)x, at[k][1] = (int16_t)y, of[k] = -1, echo[k] = -1;
-        /* known by the device's number, unless it is another finger's echo */
+        /* known by the device's number, unless it is another finger's echo; past a lost one far, the next of it */
         for (int i = 0; pts[k].id != DGX_DI_NO_ID && i < DGX_DI_FINGERS; ++i) {
             const dgx_di_finger_t *f = &p->fingers[i];
-            if ((f->down || f->sees) && !taken[i] && f->id == pts[k].id) {
-                echo[k] = (int8_t)echo_of(p, i, x, y);
-                if (echo[k] < 0) of[k] = (int8_t)i, taken[i] = true;
-                break;
-            }
+            if (!(f->down || f->sees) || taken[i] || f->id != pts[k].id) continue;
+            echo[k] = (int8_t)echo_of(p, i, x, y);
+            if (echo[k] < 0 && !f->sees && far2(f, x, y) > lost * lost) continue;
+            if (echo[k] < 0) of[k] = (int8_t)i, taken[i] = true;
+            break;
         }
     }
     /* an echo: that finger's, when no point of its own came; else none's (not a new finger) */
@@ -158,8 +168,8 @@ int dgx_di_pointer_read(dgx_di_pointer_t *p, uint32_t now_ms)
             for (int i = 0; i < DGX_DI_FINGERS; ++i) {
                 const dgx_di_finger_t *f = &p->fingers[i];
                 if (!(f->down || f->sees) || taken[i]) continue;
-                const int32_t ex = f->seen_x - at[k][0], ey = f->seen_y - at[k][1], e = ex * ex + ey * ey;
-                if (e < best) best = e, bk = k, bi = i;
+                const int32_t e = far2(f, at[k][0], at[k][1]);
+                if (e < best && (f->sees || e <= lost * lost)) best = e, bk = k, bi = i;
             }
         }
         if (bk < 0) break;

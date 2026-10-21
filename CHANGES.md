@@ -1,6 +1,6 @@
 # Changes
 
-## Unreleased
+## 0.1.1 - 2026-10-21
 
 On DGX 0.7, which has its sources grouped by topic and mixes the overlay
 layer into every transfer of a screen, the turned ones too. DGX-DI uses none
@@ -8,9 +8,27 @@ of what 0.7 took away (the oriented functions of a virtual screen, the
 pixels of an area one by one, dgx_bw_page_screen.h).
 
 - **DGX 0.7** (`jef-sure/dgx` ^0.7.0, 0.6 no more). The host tests build
-  DGX's sources where 0.7 has them; they pass, and the board programs build
-  with ESP-IDF 5.5.5, 6.0.3 and 6.1 for the CYD and the 7- and 10-inch
-  boards. Not tried on a board with DGX 0.7.
+  DGX's sources where the checkout given has them, 0.7 or 0.6, and pass
+  against DGX 0.7.3 and 0.6.6; the board programs build with ESP-IDF 5.5.5,
+  6.0.3 and 6.1 for the CYD and the 7- and 10-inch boards (with DGX 0.7.0).
+- **Quick taps of two keys both typed.** A finger lost a moment is held
+  down for `up_ms`, and it took any point meanwhile: a tap of another key
+  less than `up_ms` after the last went up moved the last finger there, with
+  no press (a GSL3680 calibrated at 110 ms lost the second digit of "02"
+  typed quickly; a GT911 giving the new finger the number 0 again, the
+  same). Now a finger lost takes only a point within an eighth of the
+  display's smaller side of its last place; one farther is a new finger,
+  pressed where it lands, with the device's number or with none.
+- The GSL3680 read: a count of more than ten fingers (a read as the chip
+  resets, `0xff` throughout) is not taken for points.
+- `dgx_di_pad_hide()` (and `dgx_di_pad_free()`) leaves another layer laid
+  over the display.
+- `tools/gsl_firmware.py`, `tools/pad_blob.py` and `tools/keyboard_blob.py`
+  refuse an array not closed, a word past 32 bits, an item, shape, page, row
+  or key that is not an object, with what is wrong instead of a traceback; a
+  color missing from the keyboard's theme is named.
+- The package of the registry leaves the host tests out; they are in the
+  repository.
 - **README:** installed from the registry, DGX-DI and DGX both go into
   `managed_components/`, and that is all. Only a checkout of DGX of one's
   own, in place of the registry's, must sit in a directory named

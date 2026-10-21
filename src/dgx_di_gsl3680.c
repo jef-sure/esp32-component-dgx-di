@@ -114,6 +114,8 @@ static int gsl_read(dgx_di_device_t *device, dgx_di_point_t *points, int max)
     uint8_t           d[4 + 4 * GSL_FINGERS];
     if (max > GSL_FINGERS) max = GSL_FINGERS;
     if (!t->dev || max <= 0 || !get(t, REG_POINTS, d, 4 + 4 * (size_t)max)) return 0;
+    /* more fingers than it sees: not points (a read as it resets, 0xff throughout), not read */
+    if (d[0] > GSL_FINGERS) return 0;
     const int n = d[0] < max ? d[0] : max;
     for (int i = 0; i < n; ++i) {
         const uint8_t *e = d + 4 + 4 * i;

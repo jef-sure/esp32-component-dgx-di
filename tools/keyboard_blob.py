@@ -48,9 +48,9 @@ ACTIONS = {"erase": 0x08, "done": 0x0A, "cancel": 0x1B, "shift": SHIFT}
 NONE = 0xFFFF
 
 
-def rgb565(color):
+def rgb565(color, what):
     if not isinstance(color, str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
-        raise ValueError(f"a color is #rrggbb, not {color!r}")
+        raise ValueError(f"{what}: a color is #rrggbb, not {color!r}")
     v = int(color[1:], 16)
     r, g, b = v >> 16 & 255, v >> 8 & 255, v & 255
     return (r & 0xF8) << 8 | (g & 0xFC) << 3 | (b & 0xF8) >> 3
@@ -108,20 +108,27 @@ def blob(layout):
     if not isinstance(pages, list) or not 1 <= len(pages) <= PAGES:
         raise ValueError(f"a layout has 1 to {PAGES} pages")
     theme = layout.get("theme") or {}
+    if not isinstance(theme, dict):
+        raise ValueError(f"theme: an object, not {theme!r}")
     strings, head, keys = Strings(), bytearray(), bytearray()
     count = 0
     for p, page in enumerate(pages):
+        if not isinstance(page, dict):
+            raise ValueError(f"page {p + 1}: an object, not {page!r}")
         rows = page.get("rows")
         if not isinstance(rows, list) or not 1 <= len(rows) <= ROWS:
             raise ValueError(f"page {p + 1}: 1 to {ROWS} rows")
+        for r, row in enumerate(rows):
+            if not isinstance(row, list) or not row:
+                raise ValueError(f"page {p + 1}, row {r + 1}: no keys")
         if sum(len(row) for row in rows) > KEYS:
             raise ValueError(f"page {p + 1}: at most {KEYS} keys")
         head += struct.pack("<B5B", len(rows), *([len(row) for row in rows] + [0] * (ROWS - len(rows))))
         for r, row in enumerate(rows):
-            if not isinstance(row, list) or not row:
-                raise ValueError(f"page {p + 1}, row {r + 1}: no keys")
             for i, key in enumerate(row):
                 where = f"page {p + 1}, row {r + 1}, key {i + 1}"
+                if not isinstance(key, dict):
+                    raise ValueError(f"{where}: an object, not {key!r}")
                 c = code(key, len(pages), where)
                 upper = one(key["upper"], where + ", with shift") if key.get("upper") else 0
                 width = key.get("width", 4)
@@ -131,7 +138,7 @@ def blob(layout):
                 keys += struct.pack("<IIHBB", c, upper, strings.add(label), 0 if width == 4 else width, 0)
                 count += 1
     name = strings.add(layout.get("name") or None)
-    colors = [rgb565(theme.get(k)) for k in ("backTop", "backBottom", "key", "keySpecial", "keyPressed", "label")]
+    colors = [rgb565(theme.get(k), f"theme, {k}") for k in ("backTop", "backBottom", "key", "keySpecial", "keyPressed", "label")]
     header = b"DGXK" + struct.pack("<BBH5H6HH", VERSION, len(pages), count, tenths(layout, "keyH", 1), tenths(layout, "unitW", 1),
                                    tenths(layout, "gap", 0), tenths(layout, "margin", 0), tenths(layout, "radius", 0), *colors, name)
     return bytes(header + head + keys + strings.data)

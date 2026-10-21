@@ -156,7 +156,7 @@ void dgx_di_pad_free(dgx_di_pad_t *pad, dgx_screen_t *display);
 /* Laid over the display, alpha 0..255 how much of its colors over the picture (160: well seen, the game too). */
 bool dgx_di_pad_show(dgx_di_pad_t *pad, dgx_screen_t *display, uint8_t alpha);
 
-/* Taken away from the display; its place there marked to be sent again. */
+/* Taken away from the display; its place there marked to be sent again. Another layer laid over it stays. */
 void dgx_di_pad_hide(dgx_di_pad_t *pad, dgx_screen_t *display);
 
 /* The item at x, y of the display; -1: none. */

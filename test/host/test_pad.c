@@ -443,9 +443,18 @@ int main(void)
         CHECK(opened == 0);
     }
 
-    /* laid over the display and taken away; too many items: none */
+    /* laid over the display and taken away, another pad not shown neither hiding nor freeing it; too many items: none */
     CHECK(dgx_di_pad_show(&pad, display, 160));
+    {
+        dgx_di_pad_t q;
+        CHECK(dgx_di_pad_init(&q, display, MM_W, MM_H, dgx_di_pad_classic, DGX_DI_PAD_CLASSIC));
+        dgx_di_pad_hide(&q, display);
+        CHECK(pad.layer->overlay);
+        dgx_di_pad_free(&q, display);
+        CHECK(pad.layer->overlay);
+    }
     dgx_di_pad_hide(&pad, display);
+    CHECK(!pad.layer->overlay);
     {
         dgx_di_pad_t q;
         CHECK(!dgx_di_pad_init(&q, display, MM_W, MM_H, dgx_di_pad_classic, 200));

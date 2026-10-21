@@ -28,7 +28,7 @@ What it gives:
 - a driver of the Silead GSL3680, and any panel of ESP-IDF's `esp_lcd_touch`
   (GT911, FT5x06, CST816, XPT2046 and the rest).
 
-This is version 0.1.0. Its interfaces may still change.
+This is version 0.1.1. Its interfaces may still change.
 
 ## Contents
 
@@ -73,14 +73,14 @@ DGX-DI is an ESP-IDF component, published in the ESP Component Registry as
 `jef-sure/dgx-di`. Add it to a project:
 
 ```sh
-idf.py add-dependency "jef-sure/dgx-di^0.1.0"
+idf.py add-dependency "jef-sure/dgx-di^0.1.1"
 ```
 
 or put it into `main/idf_component.yml` yourself:
 
 ```yaml
 dependencies:
-  jef-sure/dgx-di: "^0.1.0"
+  jef-sure/dgx-di: "^0.1.1"
 ```
 
 It brings DGX along (`jef-sure/dgx` 0.7 or a later 0.7: the pad lies in its
@@ -880,7 +880,7 @@ before), `DGX_DI_RECT_LONG` (held long inside, told once),
 | `bool dgx_di_pad_init(dgx_di_pad_t *pad, const dgx_screen_t *display, int width_mm, int height_mm, const dgx_di_pad_item_t *items, int count)` | A pad of these items on the display as it stands, measured in millimetres: its layer and mask made and drawn. `false`: no memory, or more than 124 items. |
 | `bool dgx_di_pad_open(dgx_di_pad_t *pad, const dgx_screen_t *display, int width_mm, int height_mm, const uint8_t *layout, size_t size)` | A pad of a layout, a blob of `tools/pad_blob.py` (kept): its items made, drawn by their pictures. `false`: no memory, no such blob, or one past the limits. |
 | `bool dgx_di_pad_show(dgx_di_pad_t *pad, dgx_screen_t *display, uint8_t alpha)` | Laid over the display, `alpha` 0..255 how much of its colors over the picture (160: well seen, the game too). |
-| `void dgx_di_pad_hide(dgx_di_pad_t *pad, dgx_screen_t *display)` | Taken off the display, its place marked to be sent again. |
+| `void dgx_di_pad_hide(dgx_di_pad_t *pad, dgx_screen_t *display)` | Taken off the display, its place marked to be sent again; another layer over the display stays. |
 | `void dgx_di_pad_free(dgx_di_pad_t *pad, dgx_screen_t *display)` | Its layer and mask given back, hidden first. |
 | `void dgx_di_pad_take(dgx_di_pad_t *pad, dgx_di_pointer_t *pointer)` | The fingers of the last read taken: those gone down on an item claimed, the buttons and axes made, the items changed drawn again. |
 | `int dgx_di_pad_item_at(const dgx_di_pad_t *pad, int x, int y)` | The item at a point of the display, -1: none. |

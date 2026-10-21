@@ -22,8 +22,8 @@ Bootstrap come from a CDN.
   table of characters). The font is saved with the layout: a font of DGX by
   its name, a face of a file by its family, style and PostScript name at a
   size in millimetres (pixels on the display shown as DGX counts them:
-  across, rounded), with what the build asks DGX for below it
-  (`dgx_font_need(keys LAYOUT keys.json)`, DGX 0.7.2 and later).
+  across, rounded), with what the program's CMakeLists says for it below
+  (`dgx_di_keyboard_font(keys keys.json)`, DGX 0.7.2 and later).
 - **The layout.** Its sizes in millimetres: the height of a key, its width
   at most (the longest row of all pages makes it narrower to fit the
   display), the gaps, the margin of the band, the rounding of the corners.

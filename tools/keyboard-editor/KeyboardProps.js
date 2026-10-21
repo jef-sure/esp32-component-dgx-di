@@ -48,8 +48,8 @@ const KeyboardProps = {
             const s = this.keyboardStore, want = s.layout.font, d = s.edit.display;
             if (!want) return '';
             const board = `dgx_fonts_board(PIXELS ${d.width} ${d.height} MM ${d.widthMm} ${d.heightMm})`;
-            if (want.dgx) return `for the build: ${board}; dgx_font_need(keys LAYOUT keys.json) if ${want.dgx} is one of DGX's own fonts, dgx_font_need(keys FILE <its .c> TEXTS keys.json) if it is the program's; the keyboard is given dgx_font_keys()`;
-            return `for the build: ${board}; dgx_font_need(keys LAYOUT keys.json): ${want.postscript || want.family + ' ' + want.style} at ${want.mm || want.px + ' px'}${want.mm ? ' mm' : ''}, the letters of the labels; the keyboard is given dgx_font_keys()`;
+            if (want.dgx) return `for the build: ${board}; dgx_di_keyboard_font(keys keys.json) if ${want.dgx} is one of DGX's own fonts, dgx_di_keyboard_font(keys keys.json FILE <its .c>) if it is the program's; the keyboard is given dgx_font_keys()`;
+            return `for the build: ${board}; dgx_di_keyboard_font(keys keys.json): ${want.postscript || want.family + ' ' + want.style} at ${want.mm || want.px + ' px'}${want.mm ? ' mm' : ''}, the letters of the labels; the keyboard is given dgx_font_keys()`;
         },
         lackingText() {
             const lacking = this.keyboardStore.fontLacking;

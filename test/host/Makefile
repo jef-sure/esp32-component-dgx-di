@@ -13,7 +13,8 @@ BUILD  := build
 # with Python, the ready layouts of the keyboard made again of their JSON and compared; with Node, the geometry of the
 # keyboard's editor compared with the C's
 TOOLS := $(if $(shell command -v python3),check-layouts check-pad-layouts) $(if $(shell command -v node),check-keyboard-js check-pad-js) \
-	$(if $(and $(shell command -v python3),$(shell command -v node)),check-templates)
+	$(if $(and $(shell command -v python3),$(shell command -v node)),check-templates) \
+	$(if $(and $(shell command -v python3),$(shell command -v node),$(shell command -v cmake)),check-keyboard-font)
 
 all: run-test_pointer run-test_touch run-test_calibration run-test_rects run-test_pad run-test_keyboard $(TOOLS)
 
@@ -100,4 +101,9 @@ check-templates: check-keyboard-js check-pad-js
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all clean check-layouts check-keyboard-js check-pad-layouts check-pad-js check-templates
+# dgx_di_keyboard_font() of project_include.cmake, run by CMake as a script: the letters and the request of the fonts
+# of the ready layouts and the templates
+check-keyboard-font: check-keyboard-js
+	python3 check_keyboard_font.py $(BUILD)/keyboard-font $(ROOT)/tools/keyboard-editor/examples/*.json $(BUILD)/keyboard-templates/*.json
+
+.PHONY: all clean check-layouts check-keyboard-js check-pad-layouts check-pad-js check-templates check-keyboard-font

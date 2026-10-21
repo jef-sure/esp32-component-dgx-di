@@ -679,7 +679,7 @@ display's size in millimetres once:
 ```cmake
 # main/CMakeLists.txt, after idf_component_register (paths from this file)
 dgx_fonts_board(PIXELS 1024 600 MM 154 86)
-dgx_font_need(keys LAYOUT keys.json)
+dgx_di_keyboard_font(keys keys.json)
 ```
 
 ```c
@@ -689,12 +689,16 @@ dgx_di_keyboard_open(&kb, screen, DGX_FONTS_BOARD_WIDTH_MM, DGX_FONTS_BOARD_HEIG
                      dgx_font_keys(), &field);
 ```
 
-DGX finds the face on the computer the program is built on, by its
-PostScript name, and stops the build if the face is not there or has not a
-letter of the labels; it makes one font of a face at a size for everything
-that asks for it. A font of DGX's own is taken as it is; a font of the
-program's own is asked for with `dgx_font_need(keys FILE fonts/MyFont.c TEXTS
-keys.json)`. All of it is told in DGX's `docs/fonts-ru.md`.
+`dgx_di_keyboard_font(<name> <layout.json>)` comes with DGX-DI (its
+`project_include.cmake`): it reads the layout's font and the letters of its
+labels and asks DGX for them with `dgx_font_need`, so DGX need not know the
+layout. An edited layout configures the project again. DGX finds the face on
+the computer the program is built on, by its PostScript name, and stops the
+build if the face is not there or has not a letter of the labels; it makes
+one font of a face at a size for everything that asks for it. A font of
+DGX's own is taken as it is; a font of the program's own is given with
+`dgx_di_keyboard_font(keys keys.json FILE fonts/MyFont.c)`, its letters
+checked. DGX's font needs are told in its `docs/fonts-ru.md`.
 
 ### Rotate the screen
 
@@ -1018,8 +1022,13 @@ compare them with `src/dgx_di_keyboard_layouts.c` and
 with the C's on several displays, and the pad editor's colors with DGX's
 mixing (`tools/keyboard-editor/test.js`, `tools/pad-editor/test.js`), and
 with both they check the editors' templates: nothing wrong on the displays
-they are for, and the tools make blobs of them. Each editor's actions, the
-mouse's too, are tested by its `test.html`, opened in a browser.
+they are for, and the tools make blobs of them. Fonts of DGX read by the
+keyboard editor are drawn as DGX draws them, compared pixel for pixel with
+`font_dump`. With CMake too, `dgx_di_keyboard_font()` runs as a script on the
+ready layouts and the templates: the letters it gives DGX are those of the
+labels, its requests are as DGX takes them, and its letters are not written
+again unchanged. Each editor's actions, the mouse's too, are tested by its
+`test.html`, opened in a browser.
 
 ## Repository layout
 
@@ -1036,6 +1045,7 @@ tools/keyboard_blob.py          a keyboard layout's JSON as the blob the keyboar
 tools/keyboard-editor/          the editor of keyboard layouts (index.html), the ready ones in examples/
 tools/pad_blob.py               a pad layout's JSON as the blob the pad opens
 tools/pad-editor/               the editor of pad layouts and their pictures (index.html), the ready ones in examples/
+project_include.cmake           dgx_di_keyboard_font() for a program's CMakeLists: the font of a keyboard layout of DGX
 test/host/                      the host tests
 ```
 

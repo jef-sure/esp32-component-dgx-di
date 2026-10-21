@@ -23,9 +23,13 @@ pixels of an area one by one, dgx_bw_page_screen.h).
   with DGX's own drawing, glyph and label). A key whose letters the font has
   not is marked and told among the problems. The font is saved with the
   layout (`"font"`: a face by its PostScript name at a size in millimetres,
-  or a font of DGX by its name), as DGX's font needs read it (DGX 0.7.2:
-  `dgx_font_need(keys LAYOUT keys.json)` makes it with the letters of the
-  labels). The blob is the same as before.
+  or a font of DGX by its name). The blob is the same as before.
+- **`dgx_di_keyboard_font(<name> <layout.json> [FILE <font.c>])`** for a
+  program's CMakeLists (DGX-DI's `project_include.cmake`): the font of a
+  layout's labels asked of DGX's font needs (DGX 0.7.2), its face and size
+  as the editor saved them, the letters of its labels in a file of the
+  build, written only when they change; DGX need not know the layout. The
+  program gives the keyboard `dgx_font_<name>()`.
 
 ## 0.0.2 - 2026-10-20
 

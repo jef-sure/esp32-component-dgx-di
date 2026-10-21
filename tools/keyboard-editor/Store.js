@@ -156,6 +156,12 @@ const useKeyboardStore = Pinia.defineStore('keyboard', {
             } catch (e) {
                 this.message = 'Not kept in the browser: ' + e.message;
             }
+            // the steps to undo and redo, for the tab: a reload keeps them
+            try {
+                sessionStorage.setItem(StorageKey, JSON.stringify({ history: this.history, future: this.future }));
+            } catch (e) {
+                /* more than the tab keeps: undone till a reload all the same */
+            }
         },
         restore() {
             try {
@@ -164,6 +170,8 @@ const useKeyboardStore = Pinia.defineStore('keyboard', {
                     this.layout = saved.layout;
                     Object.assign(this.edit, saved.edit || {});
                     this.keepChoice();
+                    const steps = JSON.parse(sessionStorage.getItem(StorageKey) || 'null');
+                    if (steps && Array.isArray(steps.history) && Array.isArray(steps.future)) this.history = steps.history, this.future = steps.future;
                 }
             } catch (e) {
                 this.message = 'What the browser kept is not read: ' + e.message;

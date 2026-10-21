@@ -45,7 +45,9 @@ Bootstrap come from a CDN.
   a key of a page goes to it.
 - **The file.** The layout is saved as JSON (Save JSON) and opened again
   (Open, or a file dropped onto the window); the browser keeps the last one
-  between visits. Undo and redo: Ctrl+Z, Ctrl+Shift+Z.
+  between visits. Undo and redo: Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y, on any
+  layout of the keyboard (Ctrl+Я is Ctrl+Z); the steps live while the tab
+  does, through a reload.
 
 The ready layouts of DGX-DI are `examples/digits.json` and
 `examples/latin.json`. `src/dgx_di_keyboard_layouts.c` is made of them; to

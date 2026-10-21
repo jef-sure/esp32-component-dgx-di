@@ -27,6 +27,9 @@ pixels of an area one by one, dgx_bw_page_screen.h).
   not is marked and told among the problems. The font is saved with the
   layout (`"font"`: a face by its PostScript name at a size in millimetres,
   or a font of DGX by its name). The blob is the same as before.
+- **Undo in the keyboard editor** on any layout of the computer's keyboard
+  (Ctrl+Я is Ctrl+Z on ЙЦУКЕН, which typed nothing) and from a list; its
+  steps live while the tab does, through a reload.
 - **`dgx_di_keyboard_font(<name> <layout.json> [FILE <font.c>])`** for a
   program's CMakeLists (DGX-DI's `project_include.cmake`): the font of a
   layout's labels asked of DGX's font needs (DGX 0.7.2), its face and size

@@ -24,7 +24,7 @@
     <div id="vue-app"></div>
     <script src="keyboard-app.js"> </script>
     <script>
-        const fails = [], kept = localStorage.getItem(StorageKey), keptFont = localStorage.getItem(FontStorageKey);
+        const fails = [], kept = localStorage.getItem(StorageKey), keptFont = localStorage.getItem(FontStorageKey), keptSteps = sessionStorage.getItem(StorageKey);
         // a font of DGX as font2c writes one, of three letters: a space, H and a
         const TinyFont = `#include "dgx_font.h"
 static const uint8_t bitmaps[] = {
@@ -76,6 +76,26 @@ dgx_font_t* Tiny() {
             ok(s.layout.pages[0].rows[0][0].char === '1', 'undone');
             s.redo();
             ok(s.layout.pages[0].rows[0][0].upper === 'Z', 'redone');
+            // the keys of undo whatever the layout of the computer's keyboard (Ctrl+Я on ЙЦУКЕН), from a list too; a field of
+            // text keeps its own
+            const keyDown = (el, init) => el.dispatchEvent(new KeyboardEvent('keydown', Object.assign({ bubbles: true, cancelable: true }, init)));
+            await Vue.nextTick();
+            keyDown(document.body, { key: 'я', code: 'KeyZ', ctrlKey: true });
+            ok(s.layout.pages[0].rows[0][0].char === '1', 'Ctrl+Я undoes');
+            keyDown(document.body, { key: 'Я', code: 'KeyZ', ctrlKey: true, shiftKey: true });
+            ok(s.layout.pages[0].rows[0][0].char === 'z', 'Ctrl+Shift+Я redoes');
+            const list = document.querySelector('.kb-zoom'), textField = document.querySelector('input:not([type])');
+            keyDown(list, { key: 'z', code: 'KeyZ', ctrlKey: true });
+            ok(s.layout.pages[0].rows[0][0].char === '1', 'Ctrl+Z from the list of zooms undoes');
+            keyDown(list, { key: 'y', code: 'KeyY', ctrlKey: true });
+            ok(s.layout.pages[0].rows[0][0].char === 'z', 'Ctrl+Y from it redoes');
+            keyDown(textField, { key: 'z', code: 'KeyZ', ctrlKey: true });
+            ok(textField && s.layout.pages[0].rows[0][0].char === 'z', 'Ctrl+Z in a field of text is the field\'s');
+            // the steps to undo through a reload: kept for the tab, put back with the layout
+            const steps = s.history.length;
+            s.history = [], s.future = [];
+            s.restore();
+            ok(steps > 0 && s.history.length === steps, 'the steps to undo after a reload: ' + s.history.length + ' of ' + steps);
             s.undo();
             // keys and rows added, moved, taken away
             s.addKey(true);
@@ -199,6 +219,8 @@ dgx_font_t* Tiny() {
         else localStorage.setItem(StorageKey, kept);
         if (keptFont === null) localStorage.removeItem(FontStorageKey);
         else localStorage.setItem(FontStorageKey, keptFont);
+        if (keptSteps === null) sessionStorage.removeItem(StorageKey);
+        else sessionStorage.setItem(StorageKey, keptSteps);
         const verdict = fails.length ? 'EDITOR FAILED: ' + fails.join('; ') : 'EDITOR OK';
         document.getElementById('verdict').textContent = verdict;
         document.getElementById('verdict').style.color = fails.length ? '#b02a37' : '#146c43';

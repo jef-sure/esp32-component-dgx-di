@@ -80,11 +80,13 @@ check-pad-js: $(BUILD)/pad_dump
 	mkdir -p $(BUILD)/pad-templates
 	node $(ROOT)/tools/pad-editor/test.js $(BUILD)/pad-geometry.json $(BUILD)/pad-templates
 
-# the templates of the editors, as they write them: the tools make blobs of them
+# the templates of the editors, as they write them: the tools make blobs of them; the pad editor's own blobs of them
+# (For the program) the same as pad_blob.py's, byte for byte
 check-templates: check-keyboard-js check-pad-js
 	python3 $(ROOT)/tools/keyboard_blob.py --builtin $(BUILD)/keyboard-templates.c $(BUILD)/keyboard-templates/*.json
 	python3 $(ROOT)/tools/pad_blob.py --builtin $(BUILD)/pad-templates.c $(BUILD)/pad-templates/*.json
-	@echo "the templates of the editors: the tools make blobs of them"
+	@for f in $(BUILD)/pad-templates/*.json; do python3 $(ROOT)/tools/pad_blob.py $$f $${f%.json}.py.pad && cmp $${f%.json}.pad $${f%.json}.py.pad || exit 1; done
+	@echo "the templates of the editors: the tools make blobs of them; the pad editor's blobs as pad_blob.py's"
 
 clean:
 	rm -rf $(BUILD)

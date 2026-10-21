@@ -58,7 +58,18 @@ for (const t of P.Templates) {
     if (t.own && text !== fs.readFileSync(path.join(__dirname, 'examples', t.name + '.json'), 'utf8')) fail(`the template ${t.name}: not as examples/${t.name}.json`);
     layout.items[0].x += 10;
     if (P.template(t.name).items[0].x === layout.items[0].x) fail(`the template ${t.name}: not made anew`);
-    if (process.argv[3]) fs.writeFileSync(path.join(process.argv[3], t.name + '.json'), text);
+    if (process.argv[3]) {
+        fs.writeFileSync(path.join(process.argv[3], t.name + '.json'), text);
+        // the blob as the editor makes it, for the Makefile to compare with pad_blob.py's
+        fs.writeFileSync(path.join(process.argv[3], t.name + '.pad'), P.toBlob(JSON.parse(text)));
+    }
+}
+// each theme of a template too, as the editor makes the blob: compared with pad_blob.py's by the Makefile
+if (process.argv[3]) for (const name of Object.keys(P.Themes)) {
+    const layout = P.themed(P.template('arcade'), name);
+    layout.name = 'arcade-' + name.toLowerCase();
+    fs.writeFileSync(path.join(process.argv[3], layout.name + '.json'), P.toJson(layout));
+    fs.writeFileSync(path.join(process.argv[3], layout.name + '.pad'), P.toBlob(layout));
 }
 if (P.template('none').name !== 'classic') fail('no template of a name: not the classic one');
 
@@ -104,6 +115,16 @@ try {
     assert.match(told, /3 points at least/);
     assert.match(told, /no picture sideways/);
     assert.ok(P.check({ format: 'other' }));
+    // the blob: its header as pad_blob.py writes it; a layout the program would not open refused with what is wrong
+    const blob = P.toBlob(layout);
+    assert.strictEqual(Buffer.from(blob.slice(0, 4)).toString(), 'DGXP');
+    assert.strictEqual(blob[5], 7);
+    assert.strictEqual(blob.length, 16 + 7 * 56 + 'classic\0'.length);
+    assert.throws(() => P.toBlob(bad), /out is one of/);
+    assert.throws(() => P.toBlob({ ...layout, items: [{ kind: 'cross', r: 10, x: 1.5 }] }), /whole number/);
+    assert.strictEqual(P.ident('My Pad 2'), 'my_pad_2');
+    assert.strictEqual(P.ident('7 inch'), '_7_inch');
+    assert.match(P.toC('pad_x', blob, 'x.json'), /const uint8_t pad_x\[\] = \{\n    0x44, 0x47, 0x58, 0x50/);
 } catch (e) {
     fail(e.message);
 }
@@ -112,4 +133,4 @@ if (failures.length) {
     console.error(failures.slice(0, 20).join('\n') + (failures.length > 20 ? `\n... ${failures.length - 20} more` : ''));
     process.exit(1);
 }
-console.log(`the pad editor's model: its places as the C's, ${items} items in ${dump.places.length} cases; ${mixed} colors mixed as DGX mixes them; the ready layouts as the editor writes them; ${P.Templates.length} templates`);
+console.log(`the pad editor's model: its places as the C's, ${items} items in ${dump.places.length} cases; ${mixed} colors mixed as DGX mixes them; the ready layouts as the editor writes them; ${P.Templates.length} templates; the blob`);

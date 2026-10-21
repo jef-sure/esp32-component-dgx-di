@@ -1,21 +1,35 @@
 // The display in its own pixels: under the pad a picture (a game made up — sky, sun, hills, ground — or plain, or one's
 // own image), as RGB565; over it the pad's layer, its items drawn as DGX-DI draws them (their pictures, or the default
-// look), mixed over the picture as DGX mixes a layer at its alpha. The chosen item's circle, the one a finger takes it
-// by, over all. Editing: an item dragged by its middle, made larger by its rim (a millimetre a step; Alt: a tenth).
-// Trying: the mouse a finger.
+// look), mixed over the picture as DGX mixes a layer at its alpha. A grid of centimetres, if wanted. The chosen item's
+// circle, the one a finger takes it by, over all; the item under the mouse outlined. Editing: an item dragged by its
+// middle, made larger by its rim (a millimetre a step; Alt: a tenth); a double click opens its pictures. Trying: the
+// mouse a finger. A line of hints under the display says what the mouse does now.
 const PadCanvas = {
     data() {
-        return { drag: null, under: null, underKey: '' };
+        return { drag: null, under: null, underKey: '', hover: -1, onRim: false, icons: PadIcons };
     },
     computed: {
         ...Pinia.mapStores(usePadStore),
         drawKey() {
             const s = this.padStore;
-            return JSON.stringify([s.layout, s.edit.display, s.edit.background, s.edit.alpha, s.edit.item, s.edit.mode, s.trial.states, s.image ? s.image.src.length : 0]);
+            return JSON.stringify([s.layout, s.edit.display, s.edit.background, s.edit.alpha, s.edit.item, s.edit.mode, s.edit.grid, s.trial.states, s.image ? s.image.src.length : 0, this.hover]);
         },
         style() {
             const s = this.padStore, d = s.edit.display;
             return s.edit.zoom > 0 ? { width: d.width * s.edit.zoom + 'px' } : {};
+        },
+        cursor() {
+            if (this.padStore.edit.mode === 'try') return 'pointer';
+            if (this.drag) return this.drag.kind === 'rim' ? 'nwse-resize' : 'grabbing';
+            return this.onRim ? 'nwse-resize' : this.hover >= 0 ? 'grab' : 'default';
+        },
+        hint() {
+            const s = this.padStore;
+            if (s.edit.mode === 'try') return 'The mouse is a finger: press a button, lead it over the cross and the stick; what the program gets is on the right';
+            if (this.drag) return this.drag.kind === 'rim' ? 'Resizing: a millimetre a step, with Alt a tenth' : 'Moving: a millimetre a step, with Alt a tenth';
+            if (this.onRim) return 'Drag the rim to resize';
+            if (this.hover >= 0) return `${PadLayout.nameOf(s.layout.items[this.hover])}: drag to move, double-click to draw its pictures`;
+            return 'Click an item to choose it · drag it by its middle, resize it by its rim · arrows nudge it a millimetre · Delete takes it away';
         }
     },
     watch: {
@@ -82,10 +96,24 @@ const PadCanvas = {
                 o[4 * i] = r << 3 | r >> 2, o[4 * i + 1] = g << 2 | g >> 4, o[4 * i + 2] = b << 3 | b >> 2, o[4 * i + 3] = 255;
             }
             ctx.putImageData(out, 0, 0);
+            if (s.edit.mode !== 'edit') return;
+            const line = Math.max(1, Math.round(W / 500));
+            // the grid of centimetres, from the top left
+            if (s.edit.grid) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.13)';
+                for (let mm = 10; mm < d.widthMm; mm += 10) ctx.fillRect(Math.round(mm * W / d.widthMm), 0, 1, H);
+                for (let mm = 10; mm < d.heightMm; mm += 10) ctx.fillRect(0, Math.round(mm * H / d.heightMm), W, 1);
+            }
+            // the item under the mouse, outlined
+            const h = pls[this.hover];
+            if (h && this.hover !== s.edit.item && !this.drag) {
+                ctx.lineWidth = line;
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.beginPath(), ctx.arc(h.x + 0.5, h.y + 0.5, h.r + line, 0, 2 * Math.PI), ctx.stroke();
+            }
             // the chosen item's circle and handles
             const p = pls[s.edit.item];
-            if (p && s.edit.mode === 'edit') {
-                const line = Math.max(1, Math.round(W / 500));
+            if (p) {
                 ctx.lineWidth = line;
                 ctx.setLineDash([6 * line, 4 * line]);
                 ctx.strokeStyle = '#ffcc00';
@@ -102,12 +130,16 @@ const PadCanvas = {
             const left = r.left + (r.width - canvas.width * scale) / 2, top = r.top + (r.height - canvas.height * scale) / 2;
             return { x: Math.floor((event.clientX - left) / scale), y: Math.floor((event.clientY - top) / scale), scale };
         },
+        rimAt(p) {
+            const s = this.padStore, c = s.places[s.edit.item], grip = Math.max(6, 8 / p.scale);
+            return !!c && Math.abs(Math.hypot(p.x - c.x, p.y - c.y) - c.r) <= grip;
+        },
         down(event) {
             const s = this.padStore, p = this.at(event), pls = s.places;
             if (s.edit.mode === 'try') return s.fingerDown(p.x, p.y);
             // the rim of the chosen one first, then any item
-            const c = pls[s.edit.item], grip = Math.max(6, 8 / p.scale);
-            if (c && Math.abs(Math.hypot(p.x - c.x, p.y - c.y) - c.r) <= grip) {
+            if (this.rimAt(p)) {
+                const c = pls[s.edit.item];
                 this.drag = { kind: 'rim', k: s.edit.item, r0: s.layout.items[s.edit.item].r, d0: Math.hypot(p.x - c.x, p.y - c.y) || 1 };
                 return;
             }
@@ -119,7 +151,11 @@ const PadCanvas = {
         move(event) {
             const s = this.padStore, p = this.at(event);
             if (s.edit.mode === 'try') return s.fingerMove(p.x, p.y);
-            if (!this.drag) return;
+            if (!this.drag) {
+                this.onRim = this.rimAt(p);
+                this.hover = this.onRim ? -1 : PadLayout.itemAt(s.places, p.x, p.y);
+                return;
+            }
             if (!this.drag.moved) s.remember(), this.drag.moved = true; /* one undo the whole drag */
             if (this.drag.kind === 'move') s.moveItem(this.drag.k, p.x - this.drag.dx, p.y - this.drag.dy, event.altKey, true);
             else {
@@ -131,11 +167,23 @@ const PadCanvas = {
             const s = this.padStore;
             if (s.edit.mode === 'try') return s.fingerUp();
             this.drag = null;
+        },
+        leave() {
+            this.up();
+            this.hover = -1, this.onRim = false;
+        },
+        open(event) {
+            const s = this.padStore, p = this.at(event), k = PadLayout.itemAt(s.places, p.x, p.y);
+            if (s.edit.mode !== 'edit' || k < 0) return;
+            s.choose(k);
+            s.editPicture(PadLayout.Pictures[s.layout.items[k].kind][0]);
         }
     },
     template: `
-    <div class="pd-canvas-box">
-        <canvas ref="canvas" class="pd-canvas" :class="{ 'pd-fit': !padStore.edit.zoom }" :style="style" @mousedown.prevent="down" @mousemove="move" @mouseup="up" @mouseleave="up"
-            :title="padStore.edit.mode === 'try' ? 'Проба: мышь — палец: нажимай кнопки, веди по крестовине и стику' : 'Щелчок выбирает элемент; тянуть за середину — двигать, за обод — менять размер (миллиметр за шаг, с Alt — десятая)'"></canvas>
+    <div class="pd-canvas-stack">
+        <div class="pd-canvas-box">
+            <canvas ref="canvas" class="pd-canvas" :class="{ 'pd-fit': !padStore.edit.zoom }" :style="[style, { cursor }]" @mousedown.prevent="down" @mousemove="move" @mouseup="up" @mouseleave="leave" @dblclick="open"></canvas>
+        </div>
+        <div class="pd-canvas-hint"><span v-html="padStore.edit.mode === 'try' ? icons.hand : icons.move"></span>{{ hint }}</div>
     </div>`
 };

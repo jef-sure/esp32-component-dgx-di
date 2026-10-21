@@ -1,4 +1,4 @@
-/* the workbench: the tools, the display, the picture of an item under it, the properties, the line of state */
+/* the workbench: the tools, the display (or the pictures of an item), the properties, the line of state */
 html, body {
     height: 100%;
     overflow: hidden;
@@ -6,27 +6,19 @@ html, body {
 
 .pd-bench {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-columns: minmax(0, 1fr) 400px;
     grid-template-rows: auto minmax(0, 1fr) auto;
     grid-template-areas:
         "top top"
         "main side"
         "status status";
     height: 100vh;
-    gap: 3px;
-    padding: 3px;
+    gap: 4px;
+    padding: 4px;
     box-sizing: border-box;
-    background: #e9ebef;
+    background: #e3e6eb;
     font-size: 0.95em;
-}
-
-.pd-bench.pd-with-picture {
-    grid-template-rows: auto minmax(0, 1fr) auto auto;
-    grid-template-areas:
-        "top top"
-        "main side"
-        "strip side"
-        "status status";
+    color: #223;
 }
 
 .pd-dragging {
@@ -34,35 +26,165 @@ html, body {
     outline-offset: -3px;
 }
 
+.pd-bench svg {
+    vertical-align: -0.15em;
+}
+
+/* --- the tools along the top */
+
 .pd-top {
     grid-area: top;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 4px;
-    padding: 4px 6px;
+    gap: 5px;
+    padding: 5px 8px;
     background: #fff;
-    border-radius: 4px;
+    border-radius: 6px;
+}
+
+.pd-brand {
+    font-size: 1.05em;
+    margin-right: 6px;
+    color: #556;
+}
+
+.pd-brand b {
+    color: #223;
 }
 
 .pd-sep {
     width: 1px;
     height: 24px;
     background: #ccd;
-    margin: 0 4px;
+    margin: 0 3px;
 }
 
 .pd-zoom {
     width: auto;
 }
 
+.pd-name {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.9em;
+    color: #556;
+}
+
+.pd-name input {
+    width: 150px;
+}
+
+/* the menus under New and For the program */
+.pd-menu-box {
+    position: relative;
+}
+
+.pd-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 20;
+    margin-top: 3px;
+    padding: 8px;
+    background: #fff;
+    border: 1px solid #c8ccd4;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(20, 30, 50, 0.18);
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.pd-menu.show {
+    display: block;
+}
+
+.pd-menu-head {
+    font-size: 0.85em;
+    color: #556;
+    margin: 0 4px 6px;
+    max-width: 640px;
+}
+
+.pd-menu-group {
+    font-size: 0.8em;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #889;
+    margin: 6px 4px 2px;
+}
+
+.pd-templates {
+    width: 680px;
+}
+
+.pd-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+}
+
+.pd-card.dropdown-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 6px;
+    border: 1px solid #e0e3e8;
+    border-radius: 6px;
+    white-space: normal;
+}
+
+.pd-card.dropdown-item:hover {
+    background: #e8f0fe;
+    border-color: #9ec0f5;
+}
+
+.pd-card .pd-thumb {
+    width: 100%;
+    border-radius: 3px;
+    border: 1px solid #ccd;
+}
+
+.pd-about {
+    color: #778;
+    font-size: 0.85em;
+    display: block;
+}
+
+.pd-export {
+    width: 360px;
+}
+
+.pd-export .dropdown-item {
+    white-space: normal;
+    border-radius: 4px;
+}
+
+.pd-export code {
+    font-size: 0.9em;
+}
+
+/* --- the display in the middle */
+
 .pd-main {
     grid-area: main;
     display: flex;
     min-height: 0;
+    min-width: 0;
     background: #fff;
-    border-radius: 4px;
+    border-radius: 6px;
     padding: 4px;
+}
+
+.pd-canvas-stack {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
 }
 
 .pd-canvas-box {
@@ -74,11 +196,11 @@ html, body {
     justify-content: center;
     padding: 6px;
     background: #3a3f47;
+    border-radius: 4px;
 }
 
 .pd-canvas {
     image-rendering: pixelated;
-    cursor: pointer;
 }
 
 .pd-canvas.pd-fit {
@@ -87,11 +209,25 @@ html, body {
     object-fit: contain;
 }
 
-.pd-strip {
-    grid-area: strip;
-    background: #fff;
-    border-radius: 4px;
-    padding: 4px 6px;
+.pd-canvas-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    font-size: 0.85em;
+    color: #556;
+    min-height: 26px;
+}
+
+/* --- the pictures of an item, in place of the display */
+
+.pd-picture {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    gap: 4px;
 }
 
 .pd-picture-head {
@@ -99,41 +235,154 @@ html, body {
     flex-wrap: wrap;
     align-items: center;
     gap: 6px;
-    margin-bottom: 4px;
+}
+
+.pd-picture-head .pd-note {
+    max-width: 48%;
+}
+
+.pd-states {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.pd-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 3px 6px;
+    border: 1px solid #ccd;
+    border-radius: 6px;
+    background: #f4f5f8;
+    font-size: 0.8em;
+    cursor: pointer;
+}
+
+.pd-state:hover {
+    border-color: #9ec0f5;
+}
+
+.pd-state.chosen {
+    background: #cfe2ff;
+    border-color: #0d6efd;
+}
+
+.pd-state .pd-thumb {
+    border-radius: 3px;
 }
 
 .pd-picture-body {
+    flex: 1;
     display: flex;
     gap: 8px;
-    align-items: flex-start;
+    min-height: 0;
+    min-width: 0;
 }
 
 .pd-tools {
     display: flex;
     flex-direction: column;
     gap: 3px;
-    width: 120px;
+    width: 112px;
+    flex: none;
+}
+
+.pd-tool {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-align: left;
+}
+
+.pd-tool-field {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    font-size: 0.85em;
+    margin-top: 6px;
+    color: #556;
+}
+
+.pd-picture-canvas-box {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    min-height: 0;
+    min-width: 0;
 }
 
 .pd-picture-canvas {
-    width: 300px;
-    height: 300px;
+    height: 100%;
+    max-width: 100%;
+    aspect-ratio: 1 / 1;
     border: 1px solid #889;
+    border-radius: 4px;
     cursor: crosshair;
+}
+
+.pd-picture-right {
+    width: 280px;
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+}
+
+.pd-preview h6,
+.pd-shapes h6 {
+    font-size: 0.9em;
+    font-weight: 600;
+    margin: 0 0 4px;
+}
+
+.pd-preview-canvas {
+    image-rendering: pixelated;
+    max-width: 100%;
+    max-height: 190px;
+    border-radius: 4px;
 }
 
 .pd-shapes {
     flex: 1;
-    max-height: 300px;
-    overflow: auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
     font-size: 0.9em;
+}
+
+.pd-shape-list {
+    flex: 1;
+    min-height: 60px;
+    overflow: auto;
+    border: 1px solid #e3e5ea;
+    border-radius: 4px;
+    padding: 2px;
+}
+
+.pd-empty {
+    padding: 6px;
+}
+
+.pd-shape-props {
+    margin-top: 6px;
 }
 
 .pd-shape,
 .pd-item {
-    padding: 1px 4px;
-    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 5px;
+    border-radius: 4px;
     cursor: pointer;
+}
+
+.pd-shape:hover,
+.pd-item:hover {
+    background: #eef2f8;
 }
 
 .pd-shape.chosen,
@@ -141,21 +390,30 @@ html, body {
     background: #cfe2ff;
 }
 
+/* --- the properties on the right */
+
 .pd-side {
     grid-area: side;
     overflow: auto;
     background: #fff;
-    border-radius: 4px;
-    padding: 6px 8px;
+    border-radius: 6px;
+    padding: 6px 10px;
 }
 
 .pd-props section {
     border-bottom: 1px solid #e3e5ea;
-    padding: 4px 0 8px;
+    padding: 6px 0 10px;
+}
+
+.pd-props section:last-child {
+    border-bottom: 0;
 }
 
 .pd-props h6 {
-    margin: 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 2px 0 6px;
     font-weight: 600;
 }
 
@@ -173,6 +431,63 @@ html, body {
     min-width: 0;
 }
 
+.pd-help-text {
+    font-size: 0.88em;
+    color: #445;
+    margin: 0 0 4px;
+}
+
+/* a row: a name on the left, what it is on the right */
+.pd-field {
+    display: grid;
+    grid-template-columns: 78px minmax(0, 1fr);
+    align-items: center;
+    gap: 6px;
+    margin: 4px 0;
+    font-size: 0.9em;
+}
+
+.pd-field > span:first-child {
+    color: #556;
+}
+
+.pd-field-top {
+    align-items: start;
+}
+
+.pd-field-top > span:first-child {
+    padding-top: 4px;
+}
+
+.pd-field .form-range {
+    width: auto;
+    flex: 1;
+}
+
+.pd-field > div:not(.pd-place):not(.pd-bit-groups) {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.pd-value {
+    min-width: 2.2em;
+    text-align: right;
+}
+
+.pd-inline {
+    margin: 0 !important;
+}
+
+.pd-inline input {
+    width: 70px;
+}
+
+.pd-check {
+    margin: 2px 0 2px 84px !important;
+}
+
 .pd-grid2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -181,10 +496,6 @@ html, body {
 
 .pd-grid2 label {
     flex-wrap: wrap;
-}
-
-.pd-row {
-    width: 100%;
 }
 
 .pd-dims {
@@ -197,9 +508,20 @@ html, body {
 }
 
 .pd-items {
-    max-height: 180px;
+    max-height: 170px;
     overflow: auto;
     font-size: 0.9em;
+    border: 1px solid #e3e5ea;
+    border-radius: 4px;
+    padding: 2px;
+}
+
+.pd-item-name {
+    flex: 1;
+}
+
+.pd-kind {
+    color: #556;
 }
 
 .pd-note {
@@ -208,14 +530,169 @@ html, body {
     font-weight: normal;
 }
 
-.pd-presets {
+.pd-item-tools .btn {
+    padding: 1px 6px;
+}
+
+/* the looks: each a thumbnail of a theme */
+.pd-looks {
     display: flex;
     flex-wrap: wrap;
+    gap: 4px;
+}
+
+.pd-look {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 3px 4px;
+    border: 1px solid #ccd;
+    border-radius: 6px;
+    background: #f4f5f8;
+    font-size: 0.78em;
+    cursor: pointer;
+}
+
+.pd-look:hover {
+    border-color: #9ec0f5;
+    background: #e8f0fe;
+}
+
+.pd-look.chosen {
+    background: #cfe2ff;
+    border-color: #0d6efd;
+}
+
+.pd-look .pd-thumb {
+    border-radius: 3px;
+}
+
+.pd-look-tools {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+/* the bits of a button */
+.pd-bit-groups {
+    display: flex;
+    flex-direction: column;
     gap: 3px;
 }
 
-.pd-presets .btn {
-    padding: 1px 6px;
+.pd-bits {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-bottom: 3px;
+}
+
+.pd-bit {
+    padding: 1px 7px;
+    border: 1px solid #ccd;
+    border-radius: 10px;
+    background: #f4f5f8;
+    font-size: 0.85em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    cursor: pointer;
+    color: #223;
+}
+
+button.pd-bit:hover {
+    border-color: #9ec0f5;
+}
+
+.pd-bit.chosen,
+.pd-bit.lit {
+    background: #0d6efd;
+    border-color: #0d6efd;
+    color: #fff;
+}
+
+.pd-bit.absent {
+    color: #aab;
+    border-style: dashed;
+    cursor: default;
+}
+
+/* the anchor of a place: nine cells */
+.pd-place {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.pd-anchor {
+    display: grid;
+    grid-template-columns: repeat(3, 18px);
+    grid-template-rows: repeat(3, 18px);
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid #ccd;
+    border-radius: 4px;
+    background: #f4f5f8;
+    flex: none;
+}
+
+.pd-anchor-cell {
+    border: 1px solid #bcc;
+    border-radius: 3px;
+    background: #fff;
+    padding: 0;
+    cursor: pointer;
+}
+
+.pd-anchor-cell:hover {
+    border-color: #0d6efd;
+}
+
+.pd-anchor-cell.chosen {
+    background: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.pd-place-fields {
+    flex: 1;
+}
+
+.pd-place-fields label > span:first-child {
+    width: 1em;
+    color: #556;
+}
+
+.pd-place-fields input {
+    width: 74px;
+}
+
+/* colors to pick from */
+.pd-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    align-items: center;
+}
+
+.pd-swatch-button {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #fff;
+    outline: 1px solid #99a;
+    border-radius: 4px;
+    padding: 0;
+    cursor: pointer;
+}
+
+.pd-swatch-button.chosen {
+    outline: 2px solid #0d6efd;
+}
+
+.pd-swatches .form-control-color {
+    width: 28px;
+    height: 24px;
+    padding: 1px;
 }
 
 .pd-swatch {
@@ -225,12 +702,28 @@ html, body {
     border: 1px solid #889;
     border-radius: 2px;
     vertical-align: middle;
-    margin-right: 4px;
+    flex: none;
 }
 
 .pd-problem {
     font-size: 0.85em;
-    margin: 2px 0;
+    margin: 3px 0;
+    display: flex;
+    gap: 4px;
+    align-items: flex-start;
+}
+
+.pd-problem svg {
+    flex: none;
+    margin-top: 2px;
+}
+
+.pd-problem-link {
+    cursor: pointer;
+}
+
+.pd-problem-link:hover {
+    text-decoration: underline;
 }
 
 .pd-error {
@@ -241,34 +734,119 @@ html, body {
     color: #9a5b00;
 }
 
+/* the readout in Try */
+.pd-sticks {
+    display: flex;
+    gap: 14px;
+}
+
+.pd-stick-box {
+    text-align: center;
+}
+
+.pd-stick-well {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    border: 1px solid #99a;
+    border-radius: 50%;
+    background: #f4f5f8;
+    background-image: linear-gradient(#ddd, #ddd), linear-gradient(#ddd, #ddd);
+    background-size: 1px 100%, 100% 1px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.pd-stick-knob {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border-radius: 50%;
+    background: #99a;
+    transition: left 0.05s, top 0.05s;
+}
+
+.pd-stick-knob.lit {
+    background: #0d6efd;
+}
+
+/* --- the line of state */
+
 .pd-status {
     grid-area: status;
     display: flex;
     gap: 12px;
-    padding: 2px 8px;
+    padding: 3px 10px;
     background: #fff;
-    border-radius: 4px;
+    border-radius: 6px;
     font-size: 0.85em;
     color: #445;
+    min-height: 26px;
+    align-items: center;
 }
 
-.pd-top .pd-row {
-    width: auto;
+.pd-message {
+    text-align: right;
 }
 
-.pd-top .pd-row input {
-    width: 160px;
+.pd-undo-offer {
+    padding: 0 8px;
+    line-height: 1.4;
+    flex: none;
 }
 
-/* the menu of templates under New */
-.pd-templates {
-    top: 100%;
-    left: 0;
-    max-height: 70vh;
-    overflow-y: auto;
+.pd-level-ok {
+    color: #146c43;
 }
 
-.pd-about {
-    color: #778;
-    font-size: 0.85em;
+.pd-level-error {
+    color: #b02a37;
+    font-weight: 600;
+}
+
+/* --- the help */
+
+.pd-help {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(20, 30, 50, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pd-help-card {
+    width: min(760px, 92vw);
+    max-height: 90vh;
+    overflow: auto;
+    background: #fff;
+    border-radius: 10px;
+    padding: 16px 20px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+    font-size: 0.95em;
+}
+
+.pd-help-head {
+    display: flex;
+    align-items: center;
+    font-size: 1.1em;
+    margin-bottom: 8px;
+}
+
+.pd-help-card dl {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 6px 12px;
+    margin: 0;
+}
+
+.pd-help-card dt {
+    color: #556;
+    font-weight: 600;
+}
+
+.pd-help-card dd {
+    margin: 0;
 }

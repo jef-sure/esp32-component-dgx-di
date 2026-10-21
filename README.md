@@ -28,7 +28,7 @@ What it gives:
 - a driver of the Silead GSL3680, and any panel of ESP-IDF's `esp_lcd_touch`
   (GT911, FT5x06, CST816, XPT2046 and the rest).
 
-This is version 0.0.2. Its interfaces may still change.
+This is version 0.1.0. Its interfaces may still change.
 
 ## Contents
 
@@ -73,14 +73,14 @@ DGX-DI is an ESP-IDF component, published in the ESP Component Registry as
 `jef-sure/dgx-di`. Add it to a project:
 
 ```sh
-idf.py add-dependency "jef-sure/dgx-di^0.0.2"
+idf.py add-dependency "jef-sure/dgx-di^0.1.0"
 ```
 
 or put it into `main/idf_component.yml` yourself:
 
 ```yaml
 dependencies:
-  jef-sure/dgx-di: "^0.0.2"
+  jef-sure/dgx-di: "^0.1.0"
 ```
 
 It brings DGX along (`jef-sure/dgx` 0.6.6 or a later 0.6: the pad needs the
@@ -520,36 +520,48 @@ finger. The items are kept, not copied.
 
 A layout of a pad, its items and how each looks, is JSON, made in the pad
 editor: [tools/pad-editor](tools/pad-editor). Open its `index.html` in a
-browser; no server or build is needed.
+browser; no server or build is needed. The `?` at the top right tells how it
+is used.
 
+- New begins of a template, each shown on the display chosen: DGX-DI's own
+  layouts (classic, flat, twin) or the pads of the usual games: retro (a
+  cross, B and A), super (and the shoulders LB and RB), arcade (a cross and
+  six buttons), shooter (two sticks, LT and RT), platformer (left and right,
+  a jump and a shot), racing (left and right to steer, LT and RT), and mini
+  for a display of 2.8". A game that needs fewer buttons has a layout without
+  them: what is not in it is not drawn and takes no finger.
 - Choose a display by its pixels and millimetres. Under the pad lies a game
   made up (sky, hills, ground), or a plain color, or an image of your own,
   and the pad lies over it translucent, mixed as DGX mixes a layer at the
-  alpha you set.
+  alpha you set, over a grid of centimetres.
 - Drag an item by its middle and make it larger by its rim, a millimetre a
-  step. On the right are its kind, its button or stick, its place from an
-  edge or the middle, its radius and its color.
-- A theme gives every item pictures at once: Flat, Glass, Outline or Neon.
-  Default takes them away, and the items look as DGX-DI draws them by
-  itself.
-- Each item has pictures of its own: a button's normal and pressed; a
-  cross's normal, an arm held of each way and a corner held of each diagonal,
-  drawn over it; a stick's well, knob and knob held, the knob following the
-  finger. A picture is drawn of
-  shapes in millimetres from the item's middle: circles, rings, rectangles
-  with round corners, polygons, and lines drawn by hand. A shape's color is
-  its own, or the item's, lighter or darker. Pictures go to every item of
-  the kind, as large as each, and a cross's arms held are made of the one
-  up.
-- In Try the mouse is a finger: the buttons held and the axes show at the
-  bottom.
-- New begins of a template: DGX-DI's own layouts (classic, flat, twin) or the
-  pads of the usual games: retro (a cross, B and A), super (and the shoulders
-  LB and RB), arcade (a cross and six buttons), shooter (two sticks, LT and
-  RT), platformer (left and right, a jump and a shot), racing (left and right
-  to steer, LT and RT), and mini for a display of 2.8". A game that needs
-  fewer buttons has a layout without them: what is not in it is not drawn
-  and takes no finger.
+  step; the arrow keys nudge it. On the right are its kind, its button (a
+  chip for each bit) or stick, the edge or the middle of the display its
+  place is measured from (a grid of nine), its distances in millimetres, its
+  radius and its color. Items are added, copied and taken away.
+- A look gives every item pictures at once, each shown as it draws a cross
+  and a button: Flat, Glass, Outline or Neon. Default takes them away, and
+  the items look as DGX-DI draws them by itself. An item takes a look of its
+  own the same way.
+- Draw its pictures opens an item's pictures large, in place of the display:
+  a button's normal and pressed; a cross's normal, an arm held of each way
+  and a corner held of each diagonal, drawn over it; a stick's well, knob and
+  knob held, the knob following the finger; each a tab with the item drawn
+  in that state. A picture is drawn of shapes in millimetres from the item's
+  middle: circles, rings, rectangles with round corners, polygons, and lines
+  drawn by hand, and is shown beside in the pixels of the display, as DGX-DI
+  will draw it. A shape's color is its own, or the item's, lighter or darker.
+  Pictures go to every item of the kind, as large as each, and a cross's arms
+  held are made of the one up.
+- In Try the mouse is a finger: the buttons held light up on the right, the
+  sticks show their knobs and axes.
+- Problems are told on the right: errors the program would refuse, warnings
+  (an item past the edge, under 8 mm across, two that overlap).
+
+For the program gives the blob DGX-DI opens, straight from the browser: a
+file to embed, a C file, or the C array in the clipboard. Save JSON keeps the
+layout to open here again; of a JSON file, `tools/pad_blob.py` makes the same
+blob:
 
 Save the JSON, and `tools/pad_blob.py` makes of it the blob DGX-DI opens:
 

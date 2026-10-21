@@ -16,6 +16,17 @@ const PadLayout = (() => {
     const Paints = ['item', 'light', 'dark'];
     const Limits = { items: 124 };
     const bit = name => 1 << Bits.indexOf(name);
+    // the bits in groups, as the editor shows them: the face buttons, the ways, the shoulders, the rest
+    const BitGroups = [
+        { name: 'face', bits: ['A', 'B', 'X', 'Y'] },
+        { name: 'ways', bits: ['LEFT', 'RIGHT', 'UP', 'DOWN'], labels: { LEFT: '\u25c0 LEFT', RIGHT: '\u25b6 RIGHT', UP: '\u25b2 UP', DOWN: '\u25bc DOWN' } },
+        { name: 'shoulders', bits: ['LB', 'RB', 'LT', 'RT'] },
+        { name: 'others', bits: ['START', 'BACK', 'HOME', 'L3', 'R3'] }
+    ];
+    // colors to pick from: grey (the default), those of the classic pad, a stick's, and a few more
+    const Palette = ['#5a5a5a', '#29cf29', '#de1818', '#2192ef', '#efc721', '#4a5a78', '#ef7b21', '#9c4fd6', '#21c7b5', '#e8e8e8', '#202020'];
+    // an item's name in words: Button A, Cross, Left stick
+    const nameOf = it => it.kind === 'button' ? `Button ${it.out || '?'}` : it.kind === 'cross' ? 'Cross' : `${it.out === 'right' ? 'Right' : 'Left'} stick`;
 
     // the displays DGX-DI was tried on, as they stand in the programs that run on them
     const Displays = [
@@ -425,12 +436,13 @@ const PadLayout = (() => {
 
     // what is wrong with a layout, in words: [{level, text}]; errors: pad_blob.py refuses it, DGX-DI does not open it
     function problems(layout, d) {
-        const out = [], error = text => out.push({ level: 'error', text }), warning = text => out.push({ level: 'warning', text });
+        const out = [], error = text => out.push({ level: 'error', text, item: out.item }), warning = text => out.push({ level: 'warning', text, item: out.item });
         const items = layout.items || [];
         if (items.length < 1 || items.length > Limits.items) error(`a layout has 1 to ${Limits.items} items, this one ${items.length}`);
         const pls = d ? places(layout, d) : [];
         items.forEach((it, k) => {
             const at = `item ${k + 1} (${it.kind}${it.out ? ' ' + it.out : ''})`;
+            out.item = k; /* each told while this item is looked at belongs to it */
             if (!Kinds.includes(it.kind)) error(`${at}: no kind ${it.kind}`);
             if (!(it.r >= 1)) error(`${at}: a radius of a tenth of a millimetre at least`);
             if (it.kind === 'button' && !Bits.includes(it.out)) error(`${at}: a button's out is the name of a bit`);
@@ -452,6 +464,7 @@ const PadLayout = (() => {
                 });
             }
         });
+        delete out.item;
         return out;
     }
 
@@ -532,7 +545,117 @@ const PadLayout = (() => {
     // one picture's shapes, its middle at cx, cy, in the pixels of a display (or of a view as large as one likes)
     const drawPicture = (ctx, it, shapes, cx, cy, d) => picture(ctx, it, shapes, cx, cy, scale(d));
 
-    return { Format, Kinds, Bits, Pictures, Shapes, Paints, Limits, Displays, bit, pixels, scale, places, unplace, rgb565, hex565, lighter, darker, itemColor, shapeColor, weightOf, mix, drawItem, drawPicture, itemAt, ways, hold, Themes, themed, scaled, toJson, problems, check, classic, Templates, template };
+    // --- the blob dgx_di_pad_open() takes, as tools/pad_blob.py makes it (byte for byte: test.js compares them); a
+    // layout DGX-DI would not open throws what is wrong with it
+
+    const FROM = { start: 0, middle: 1, end: 2 }, PAINT = { item: 1, light: 2, dark: 3 }, SLOTS = 9, NONE = 0xffff;
+    class Bytes {
+        constructor() { this.parts = [], this.length = 0; }
+        push(format, ...values) { // a struct format of B (u8), H (u16), h (i16), I (u32), little-endian
+            const sizes = { B: 1, H: 2, h: 2, I: 4 }, size = [...format].reduce((n, f) => n + sizes[f], 0);
+            const buf = new DataView(new ArrayBuffer(size));
+            let at = 0;
+            [...format].forEach((f, i) => {
+                const v = values[i];
+                if (f === 'B') buf.setUint8(at, v);
+                else if (f === 'H') buf.setUint16(at, v, true);
+                else if (f === 'h') buf.setInt16(at, v, true);
+                else buf.setUint32(at, v >>> 0, true);
+                at += sizes[f];
+            });
+            this.parts.push(new Uint8Array(buf.buffer)), this.length += size;
+        }
+        bytes(raw) { this.parts.push(raw), this.length += raw.length; }
+    }
+    const whole = (v, what, least = -32768) => {
+        if (!Number.isInteger(v) || v < least || v > 32767) throw new Error(`${what}: a whole number of tenths of a millimetre from ${least}, not ${JSON.stringify(v)}`);
+        return v;
+    };
+    const color565 = (c, what) => {
+        if (typeof c !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(c)) throw new Error(`${what}: a color is #rrggbb, not ${JSON.stringify(c)}`);
+        return rgb565(c);
+    };
+    function toBlob(layout) {
+        if (!layout || layout.format !== Format.name) throw new Error(`not a layout of the pad of DGX-DI (format ${JSON.stringify(Format.name)})`);
+        if (!Number.isInteger(layout.version) || layout.version > Format.version) throw new Error(`a layout of version ${JSON.stringify(layout.version)}: this tool reads up to ${Format.version}`);
+        const items = layout.items;
+        if (!Array.isArray(items) || items.length < 1 || items.length > Limits.items) throw new Error(`a layout has 1 to ${Limits.items} items`);
+        const itemData = new Bytes(), shapeData = new Bytes(), pointData = new Bytes();
+        let shapes = 0, points = 0;
+        items.forEach((it, k) => {
+            const where = `item ${k + 1}`, kind = it.kind;
+            if (!Kinds.includes(kind)) throw new Error(`${where}: a kind of button, cross or stick, not ${JSON.stringify(kind)}`);
+            const fx = it.fromX === undefined ? 'start' : it.fromX, fy = it.fromY === undefined ? 'start' : it.fromY;
+            if (!(fx in FROM) || !(fy in FROM)) throw new Error(`${where}: fromX and fromY are start, middle or end`);
+            const x = whole(it.x === undefined ? 0 : it.x, where + ', x'), y = whole(it.y === undefined ? 0 : it.y, where + ', y'), r = whole(it.r, where + ', r', 1);
+            let out = 0;
+            if (kind === 'button') {
+                if (!Bits.includes(it.out)) throw new Error(`${where}: a button's out is one of ${Bits.join(' ')}, not ${JSON.stringify(it.out)}`);
+                out = bit(it.out);
+            } else if (kind === 'stick') {
+                const o = it.out === undefined ? 'left' : it.out;
+                if (o !== 'left' && o !== 'right') throw new Error(`${where}: a stick's out is left or right`);
+                out = o === 'right' ? 1 : 0;
+            }
+            const ways = (it.four ? 1 : 0) | (it.floating ? 2 : 0), color = it.color ? color565(it.color, where) : 0;
+            const pictures = it.pictures === undefined ? null : it.pictures;
+            if (pictures !== null && (typeof pictures !== 'object' || Array.isArray(pictures) || Object.keys(pictures).some(n => !Pictures[kind].includes(n))))
+                throw new Error(`${where}: a ${kind}'s pictures are ${Pictures[kind].join(', ')}`);
+            const slots = [];
+            for (const name of [...Pictures[kind], ...Array(SLOTS - Pictures[kind].length).fill(null)]) {
+                const of = name && pictures && pictures[name] !== undefined ? pictures[name] : [];
+                if (!Array.isArray(of)) throw new Error(`${where}, ${name}: a picture is a list of shapes`);
+                slots.push([shapes, of.length]);
+                of.forEach((sh, i) => {
+                    const w = `${where}, ${name}, shape ${i + 1}`, kindOf = sh.shape;
+                    if (!Shapes.includes(kindOf)) throw new Error(`${w}: a shape of ${Shapes.join(', ')}, not ${JSON.stringify(kindOf)}`);
+                    const c = sh.color === undefined ? 'item' : sh.color, [paint, own] = c in PAINT ? [PAINT[c], 0] : [0, color565(c, w)];
+                    const pts = (kindOf === 'polygon' || kindOf === 'line') && sh.points !== undefined ? sh.points : [];
+                    if (kindOf === 'polygon' && pts.length < 3) throw new Error(`${w}: a polygon of 3 points at least`);
+                    if (kindOf === 'line' && pts.length < 2) throw new Error(`${w}: a line of 2 points at least`);
+                    const sx = whole(sh.x === undefined ? 0 : sh.x, w + ', x'), sy = whole(sh.y === undefined ? 0 : sh.y, w + ', y');
+                    const sw = whole(kindOf === 'ring' ? (sh.width === undefined ? 1 : sh.width) : (sh.w === undefined ? 0 : sh.w), w + ', w', 0);
+                    const shh = whole(sh.h === undefined ? 0 : sh.h, w + ', h', 0);
+                    const sr = whole(kindOf === 'line' ? (sh.width === undefined ? 1 : sh.width) : (sh.r === undefined ? 0 : sh.r), w + ', r', 0);
+                    shapeData.push('BBHhhhhhHHH', SHAPES_OF[kindOf], paint, own, sx, sy, sw, shh, sr, points, pts.length, 0);
+                    pts.forEach((p, j) => {
+                        if (!(Array.isArray(p) && p.length === 2)) throw new Error(`${w}, point ${j + 1}: [x, y]`);
+                        pointData.push('hh', whole(p[0], w + ", a point's x"), whole(p[1], w + ", a point's y"));
+                    });
+                    points += pts.length;
+                    shapes += 1;
+                    if (shapes > 0xffff || points > 0xffff) throw new Error('more than 65535 shapes or points');
+                });
+            }
+            itemData.push('BBBBhhhHI', Kinds.indexOf(kind), FROM[fx], FROM[fy], ways, x, y, r, color, out);
+            for (const [first, n] of slots) itemData.push('HH', n ? first : 0, n);
+            itemData.push('BBH', pictures !== null ? 1 : 0, 0, 0);
+        });
+        const name = layout.name || '', strings = name ? new TextEncoder().encode(name + '\0') : new Uint8Array(0);
+        const header = new Bytes();
+        header.bytes(new TextEncoder().encode('DGXP'));
+        header.push('BBHHHHH', Format.version, items.length, shapes, points, name ? 0 : NONE, 0, 0);
+        const out = new Uint8Array(header.length + itemData.length + shapeData.length + pointData.length + strings.length);
+        let at = 0;
+        for (const part of [...header.parts, ...itemData.parts, ...shapeData.parts, ...pointData.parts, strings]) out.set(part, at), at += part.length;
+        return out;
+    }
+    const SHAPES_OF = { circle: 0, ring: 1, rect: 2, polygon: 3, line: 4 };
+
+    // a C name of a layout's name, and the blob as a C file (as pad_blob.py --c writes it): const uint8_t NAME[], NAME_size
+    function ident(name) {
+        let s = (name || 'pad').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'pad';
+        return /^[0-9]/.test(s) ? '_' + s : s;
+    }
+    function toC(name, data, source) {
+        const lines = [`/* The pad layout of ${source}, made by the pad editor of DGX-DI: dgx_di_pad_open(..., ${name}, ${name}_size) */`,
+            '#include <stddef.h>', '#include <stdint.h>', '', `/* ${source}: ${data.length} bytes */`, `const uint8_t ${name}[] = {`];
+        for (let i = 0; i < data.length; i += 16) lines.push('    ' + [...data.slice(i, i + 16)].map(b => '0x' + b.toString(16).padStart(2, '0')).join(', ') + ',');
+        lines.push('};', `const size_t ${name}_size = sizeof ${name};`, '');
+        return lines.join('\n');
+    }
+
+    return { Format, Kinds, Bits, BitGroups, Palette, nameOf, Pictures, Shapes, Paints, Limits, Displays, bit, pixels, scale, places, unplace, rgb565, hex565, lighter, darker, itemColor, shapeColor, weightOf, mix, drawItem, drawPicture, itemAt, ways, hold, Themes, themed, scaled, toJson, problems, check, classic, Templates, template, toBlob, ident, toC };
 })();
 
 if (typeof module === 'object') module.exports = PadLayout;

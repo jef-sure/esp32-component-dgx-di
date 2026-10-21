@@ -11,6 +11,7 @@
     <script src="https://unpkg.com/pinia@2.3.1/dist/pinia.iife.js"></script>
     <script src="Pad.js"></script>
     <script src="Store.js"></script>
+    <script src="PadWidgets.js"></script>
     <script src="PadCanvas.js"></script>
     <script src="PictureEditor.js"></script>
     <script src="PadProps.js"></script>
@@ -24,7 +25,7 @@
     <div id="vue-app"></div>
     <script src="pad-app.js"> </script>
     <script>
-        const fails = [], kept = localStorage.getItem(PadStorageKey);
+        const fails = [], kept = localStorage.getItem(PadStorageKey), keptSteps = sessionStorage.getItem(PadStorageKey);
         const ok = (cond, what) => { if (!cond) fails.push(what); };
         // the mouse on an element of the page: down, moves, up at points of it (pixels from its top left)
         const mouse = (el, type, x, y, extra) => {
@@ -141,7 +142,7 @@
             // the menu of templates: opened by New, one chosen, undone as one, closed by a click elsewhere; each drawn
             s.edit.picture = '';
             await Vue.nextTick();
-            const newButton = [...document.querySelectorAll('.pd-top button')].find(b => b.textContent.trim() === 'New');
+            const newButton = [...document.querySelectorAll('.pd-top button')].find(b => b.textContent.includes('New'));
             newButton.click();
             await Vue.nextTick();
             const menu = document.querySelector('.pd-templates'), entries = [...menu.querySelectorAll('.dropdown-item')];
@@ -163,11 +164,113 @@
                 s.layout.items.forEach((it, k) => P.drawItem(sheet, it, s.places[k], s.edit.display, { down: true, ways: P.bit('LEFT') | P.bit('DOWN') }));
             }
             ok(s.layout.name === P.Templates[P.Templates.length - 1].name, 'every template drawn');
+            ok(document.querySelectorAll('.pd-templates .pd-thumb').length === P.Templates.length, 'each template a thumbnail in the menu');
+            // the chosen item nudged, copied, ordered; the looks and the anchor on the right
+            s.newLayout('classic'), s.choose(1);
+            await Vue.nextTick();
+            s.nudgeItem(10, -20);
+            ok(s.layout.items[1].x === 290 && s.layout.items[1].y === 240, 'nudged a millimetre right and two up: from the right edge 29 mm, from the bottom 24');
+            s.duplicateItem();
+            ok(s.layout.items.length === 8 && s.edit.item === 2 && s.layout.items[2].out === 'A' && s.layout.items[2].x === 290 + 160, 'a copy of A beside it');
+            s.orderItem(-1);
+            ok(s.edit.item === 1 && s.layout.items[1].x === 450, 'the copy moved up the list');
+            s.undo(), s.undo(), s.undo();
+            ok(s.layout.items.length === 7 && s.layout.items[1].x === 300, 'all three undone');
+            ok(document.querySelectorAll('.pd-props .pd-looks-one .pd-look').length === Object.keys(P.Themes).length, 'a look of the item a thumbnail');
+            ok(document.querySelector('.pd-props .pd-looks-one .pd-look.chosen').textContent.trim() === 'Default', 'the classic one: its look Default');
+            document.querySelectorAll('.pd-anchor-cell')[4].click();
+            await Vue.nextTick();
+            ok(s.layout.items[1].fromX === 'middle' && s.layout.items[1].fromY === 'middle', 'the anchor: from the middle');
+            s.undo();
+            [...document.querySelectorAll('.pd-props .pd-bit')].find(b => b.textContent === 'RB').click();
+            await Vue.nextTick();
+            ok(s.layout.items[1].out === 'RB' && document.querySelector('.pd-props .pd-item.chosen').textContent.includes('Button RB'), 'the bit chosen by its chip, the item named after it');
+            s.undo();
+            // Try: the readout on the right lights the bits held
+            s.edit.mode = 'try';
+            await Vue.nextTick();
+            const a2 = s.places[1], display2 = document.querySelector('.pd-canvas'); /* drawn anew after the pictures */
+            mouse(display2, 'mousedown', a2.x, a2.y);
+            await Vue.nextTick();
+            ok(document.querySelectorAll('.pd-trial .pd-bit.lit').length === 1 && document.querySelector('.pd-trial .pd-bit.lit').textContent === 'A', 'A lit on the readout');
+            mouse(display2, 'mouseup', a2.x, a2.y);
+            await Vue.nextTick();
+            ok(!document.querySelector('.pd-trial .pd-bit.lit'), 'let go: none lit');
+            s.edit.mode = 'edit';
+            await Vue.nextTick();
+            // the blob for the program, as pad_blob.py makes it (the C's bytes are compared by node in test.js)
+            const blob = P.toBlob(s.layout);
+            ok(String.fromCharCode(...blob.slice(0, 4)) === 'DGXP' && blob[4] === 1 && blob[5] === 7 && blob.length === 16 + 7 * 56 + 8, 'the blob of the classic one: 7 items, its name');
+            ok(/const uint8_t pad_classic\[\]/.test(P.toC('pad_classic', blob, 'classic.json')), 'the C array');
+            const broken = JSON.parse(JSON.stringify(s.layout));
+            broken.items[1].out = 'Z';
+            let refused = '';
+            try { P.toBlob(broken); } catch (e) { refused = e.message; }
+            ok(/out is one of/.test(refused), 'a wrong bit refused with what is wrong');
+            // an item taken away: undo offered in the line of state; the history kept through a reload of the tab
+            s.choose(2), s.removeItem();
+            await Vue.nextTick();
+            ok(s.layout.items.length === 6 && document.querySelector('.pd-undo-offer'), 'taken away: Undo offered below');
+            const steps = s.history.length;
+            s.history = [], s.future = [];
+            s.restore();
+            ok(s.history.length === steps, 'the undo steps kept in the tab');
+            document.querySelector('.pd-undo-offer').click();
+            await Vue.nextTick();
+            ok(s.layout.items.length === 7 && !document.querySelector('.pd-undo-offer'), 'brought back by the offer');
+            const undoButton = [...document.querySelectorAll('.pd-top button')].find(b => b.textContent.includes('Undo'));
+            ok(undoButton && !undoButton.disabled, 'Undo named at the top');
+            // Ctrl+Z on a Russian layout (the key я where z is), and with the list of zooms focused
+            s.removeItem();
+            window.dispatchEvent(new KeyboardEvent('keydown', { key: 'я', code: 'KeyZ', ctrlKey: true, bubbles: true }));
+            ok(s.layout.items.length === 7, 'Ctrl+Я undoes');
+            s.removeItem();
+            const zoom = document.querySelector('.pd-zoom');
+            zoom.focus();
+            zoom.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', code: 'KeyZ', ctrlKey: true, bubbles: true }));
+            ok(s.layout.items.length === 7, 'Ctrl+Z from the list of zooms undoes');
+            zoom.dispatchEvent(new KeyboardEvent('keydown', { key: 'y', code: 'KeyY', ctrlKey: true, bubbles: true }));
+            ok(s.layout.items.length === 6, 'Ctrl+Y from it redoes');
+            zoom.blur();
+            s.undo();
+            const nameField = document.querySelector('.pd-name input');
+            nameField.focus();
+            s.removeItem();
+            nameField.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', code: 'KeyZ', ctrlKey: true, bubbles: true }));
+            ok(s.layout.items.length === 6, 'in a field of text Ctrl+Z is the browser\'s');
+            nameField.blur();
+            s.undo();
+            // Revert: back to the template begun, every change at once, undone as one; a file opened is the origin then
+            s.newLayout('retro');
+            s.choose(1), s.removeItem(), s.nudgeItem(10, 0), s.theme('Neon', true);
+            ok(s.changed && s.layout.items.length === 4, 'changed since Retro');
+            const revertButton = [...document.querySelectorAll('.pd-top button')].find(b => b.textContent.includes('Revert'));
+            await Vue.nextTick();
+            ok(revertButton && !revertButton.disabled, 'Revert offered');
+            revertButton.click();
+            await Vue.nextTick();
+            ok(!s.changed && s.layout.items.length === 5 && !s.layout.items[0].pictures && /back to the template Retro/.test(s.message), 'back to Retro');
+            ok(revertButton.disabled, 'nothing to revert now');
+            s.undo();
+            ok(s.layout.items.length === 4 && s.layout.items[0].pictures, 'the revert undone');
+            s.open(P.toJson(P.classic()), 'mine.json');
+            s.theme('Flat', true);
+            s.revert();
+            ok(!s.layout.items[0].pictures && s.origin.from === 'the file mine.json', 'a file opened: Revert goes back to it');
+            // the help opens and closes
+            window.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }));
+            await Vue.nextTick();
+            ok(document.querySelector('.pd-help'), 'the help by ?');
+            window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            await Vue.nextTick();
+            ok(!document.querySelector('.pd-help'), 'closed by Escape');
         } catch (e) {
             fails.push('thrown: ' + e.stack);
         }
         if (kept === null) localStorage.removeItem(PadStorageKey);
         else localStorage.setItem(PadStorageKey, kept);
+        if (keptSteps === null) sessionStorage.removeItem(PadStorageKey);
+        else sessionStorage.setItem(PadStorageKey, keptSteps);
         const verdict = fails.length ? 'EDITOR FAILED: ' + fails.join('; ') : 'EDITOR OK';
         document.getElementById('verdict').textContent = verdict;
         document.getElementById('verdict').style.color = fails.length ? '#b02a37' : '#146c43';

@@ -1,5 +1,29 @@
 # Changes
 
+## 0.1.0 - 2026-10-21
+
+- **The pad editor made friendlier.** New shows each template drawn on the
+  display chosen; the looks (Default, Flat, Glass, Outline, Neon) are shown
+  as they draw a cross and a button, for every item and for one; a button's
+  bit is a chip, the edge or the middle an item's place is measured from a
+  grid of nine, its color a swatch; items are copied, nudged by the arrow
+  keys, ordered, taken away by Delete, their names in words (Button A, Cross,
+  Left stick). An item's pictures open in place of the display, large, each
+  state a tab with the item drawn in it, and beside them the item in the
+  pixels of the display, as DGX-DI will draw it; a line under the display
+  says what the mouse does now. Try lights the buttons held and shows the
+  sticks' knobs and axes on the right. For the program gives the blob
+  `dgx_di_pad_open()` takes straight from the browser (a `.pad` file, a C
+  file, or the C array in the clipboard), the same bytes as
+  `tools/pad_blob.py` makes, and refuses a layout the program would refuse,
+  with what is wrong. A help (`?`) tells how the editor is used; a grid of
+  centimetres lies over the display. Undo and Redo are named at the top and
+  offered under the display after an item is taken away, work on any layout
+  of the keyboard (Ctrl+Я is Ctrl+Z) and from any control but a field of
+  text, and their steps live through a reload of the tab; Revert takes every
+  change back at once, to the layout as it was opened, begun of a template
+  or last saved.
+
 ## 0.0.2 - 2026-10-20
 
 On DGX 0.6.6, as 0.0.1.

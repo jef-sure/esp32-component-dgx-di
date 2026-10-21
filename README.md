@@ -83,8 +83,8 @@ dependencies:
   jef-sure/dgx-di: "^0.0.2"
 ```
 
-It brings DGX along (`jef-sure/dgx` 0.6.6 or a later 0.6: the pad needs the
-overlay layer of 0.6.6): the component manager puts both into
+It brings DGX along (`jef-sure/dgx` 0.7 or a later 0.7: the pad lies in its
+overlay layer): the component manager puts both into
 `managed_components/`, and that is all. It needs ESP-IDF 5.3 or later, and
 was built with 5.5.5, 6.0.3 and 6.1 for the ESP32 and the ESP32-P4.
 

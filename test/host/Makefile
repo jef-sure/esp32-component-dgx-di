@@ -36,9 +36,12 @@ $(BUILD)/test_rects: test_rects.c check.h $(ROOT)/src/dgx_di_rects.c $(ROOT)/src
 	mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) -o $@ test_rects.c $(ROOT)/src/dgx_di_rects.c $(ROOT)/src/dgx_di_pointer.c
 
-# the pad draws with DGX: its sources built for the host as its own tests build them
-DGX_SRCS  := $(addprefix $(DGX)/src/, pixels.c draw.c ellipse.c bezier.c texture.c orientation.c drivers/vscreen.c lut.c indexed.c overlay.c \
-               dgx_bus_optimized_funcs.c dgx_spi_area_protocol.c bitmap.c font.c bw_screen.c scroll.c bus/fb_area.c bus/fb_tiles.c bus/fb_flip.c)
+# the pad draws with DGX: its sources built for the host as its own tests build them (DGX 0.7: by topic)
+DGX_SRCS  := $(addprefix $(DGX)/src/, screen/screen.c screen/screen_bus.c screen/pixels.c screen/bitmap.c \
+               draw/draw.c draw/lines.c draw/circles.c draw/polygons.c draw/ellipse.c draw/bezier.c draw/texture.c draw/scroll.c draw/gauge.c \
+               vscreen/vscreen.c vscreen/transfer.c vscreen/bw_screen.c vscreen/image.c vscreen/lut.c vscreen/scale.c vscreen/overlay.c \
+               text/font.c text/font_morph.c text/hw_font.c text/hw_morph.c \
+               morph/matrix.c morph/morph.c morph/morph_sources.c morph/morph_render.c bus/fb_area.c bus/fb_tiles.c bus/fb_flip.c)
 DGX_FLAGS := -I$(DGX)/test/host/stubs -I$(DGX)/src -include $(DGX)/test/host/stubs/esp_log.h -Wno-format -Wno-sign-compare
 
 $(BUILD)/test_pad: test_pad.c check.h $(ROOT)/src/dgx_di_pad.c $(ROOT)/src/dgx_di_pad_layouts.c $(ROOT)/src/dgx_di_pointer.c $(ROOT)/include/dgx_di.h $(ROOT)/include/dgx_di_pad.h

@@ -33,6 +33,7 @@ files:
   include:
     - "idf_component.yml"
     - "CMakeLists.txt"
+    - "project_include.cmake"  # dgx_di_keyboard_font() for a program's CMakeLists
     - "src/**/*.c"
     - "include/**/*.h"
     - "tools/**/*.py"

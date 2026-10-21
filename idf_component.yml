@@ -10,7 +10,7 @@ dependencies:
   idf:
     version: ">=5.3.0"  # esp_driver_i2c, the I2C master driver as its own component
   jef-sure/dgx:
-    version: "^0.7.0"  # the screen a pointer and a touch are on, the overlay layer of a screen for the pad (since 0.6.6); 0.7: its sources by topic
+    version: "^0.7.2"  # the screen a pointer and a touch are on, the overlay layer of a screen for the pad (since 0.6.6); 0.7: its sources by topic; 0.7.2: font needs, a keyboard's font made at the build
 
 tags:
   - touch

@@ -83,10 +83,11 @@ dependencies:
   jef-sure/dgx-di: "^0.0.2"
 ```
 
-It brings DGX along (`jef-sure/dgx` 0.7 or a later 0.7: the pad lies in its
-overlay layer): the component manager puts both into
-`managed_components/`, and that is all. It needs ESP-IDF 5.3 or later, and
-was built with 5.5.5, 6.0.3 and 6.1 for the ESP32 and the ESP32-P4.
+It brings DGX along (`jef-sure/dgx` 0.7.2 or a later 0.7: the pad lies in
+its overlay layer, and DGX makes a keyboard's font at the build): the
+component manager puts both into `managed_components/`, and that is all. It
+needs ESP-IDF 5.3 or later, and was built with 5.5.5, 6.0.3 and 6.1 for the
+ESP32 and the ESP32-P4.
 
 To work on DGX-DI itself, check the repository out under the project's
 `components/` instead; the component manager still brings DGX into

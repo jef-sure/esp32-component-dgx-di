@@ -7,10 +7,13 @@ layer into every transfer of a screen, the turned ones too. DGX-DI uses none
 of what 0.7 took away (the oriented functions of a virtual screen, the
 pixels of an area one by one, dgx_bw_page_screen.h).
 
-- **DGX 0.7** (`jef-sure/dgx` ^0.7.0, 0.6 no more). The host tests build
-  DGX's sources where 0.7 has them; they pass, and the board programs build
-  with ESP-IDF 5.5.5, 6.0.3 and 6.1 for the CYD and the 7- and 10-inch
-  boards. Not tried on a board with DGX 0.7.
+- **DGX 0.7** (`jef-sure/dgx` ^0.7.2, 0.6 no more; 0.7.2 makes a
+  keyboard's font at the build). The host tests build DGX's sources where
+  0.7 has them; they pass, and the board programs build with ESP-IDF 5.5.5,
+  6.0.3 and 6.1 for the CYD and the 7- and 10-inch boards. On the 7-inch
+  board the keyboard of the Russian template typed all its tasks in a font
+  DGX made of the layout at the build; the pad is not yet tried on a board
+  with DGX 0.7.
 - **README:** installed from the registry, DGX-DI and DGX both go into
   `managed_components/`, and that is all. Only a checkout of DGX of one's
   own, in place of the registry's, must sit in a directory named

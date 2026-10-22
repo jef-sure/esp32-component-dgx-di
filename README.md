@@ -493,6 +493,11 @@ gives its memory back. The layer and the mask take a byte for every pixel of
 the display each (2 MB at 1280x800, in PSRAM), so the pad is for boards with
 PSRAM and a panel of several fingers, not for the CYD.
 
+The layer is a virtual screen of DGX, which DGX builds only when asked:
+`CONFIG_DGX_ENABLE_VSCREEN=y` in the program's `sdkconfig.defaults` (or
+"Enable RAM-backed virtual screen" in DGX's menuconfig). Without it the
+program does not link: `undefined reference to dgx_vscreen_init`.
+
 ### A pad of your own
 
 Items are given in tenths of a millimetre from an edge or the middle of the

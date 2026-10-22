@@ -1,5 +1,10 @@
 # Changes
 
+## Unreleased
+
+- **README:** the pad needs DGX's virtual screen, `CONFIG_DGX_ENABLE_VSCREEN=y`
+  (off in DGX unless asked for); without it a program does not link.
+
 ## 0.1.2 - 2026-10-22
 
 On DGX 0.8: a keyboard's font made by DGX at the build, of the layout's face

@@ -28,7 +28,7 @@ What it gives:
 - a driver of the Silead GSL3680, and any panel of ESP-IDF's `esp_lcd_touch`
   (GT911, FT5x06, CST816, XPT2046 and the rest).
 
-This is version 0.1.1. Its interfaces may still change.
+This is version 0.1.2. Its interfaces may still change.
 
 ## Contents
 
@@ -73,14 +73,14 @@ DGX-DI is an ESP-IDF component, published in the ESP Component Registry as
 `jef-sure/dgx-di`. Add it to a project:
 
 ```sh
-idf.py add-dependency "jef-sure/dgx-di^0.1.1"
+idf.py add-dependency "jef-sure/dgx-di^0.1.2"
 ```
 
 or put it into `main/idf_component.yml` yourself:
 
 ```yaml
 dependencies:
-  jef-sure/dgx-di: "^0.1.1"
+  jef-sure/dgx-di: "^0.1.2"
 ```
 
 It brings DGX along (`jef-sure/dgx` 0.8.0 or a later 0.8: the pad lies in

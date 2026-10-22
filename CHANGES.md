@@ -1,10 +1,12 @@
 # Changes
 
-## Unreleased
+## 0.1.2 - 2026-10-22
 
 On DGX 0.8: a keyboard's font made by DGX at the build, of the layout's face
 and size with the letters of its labels, and the keyboard editor drawing the
-labels in that font.
+labels in that font. Checked by the host tests against DGX 0.8.0 and by
+ESP-IDF 5.5.5, 6.0.3 and 6.1 builds for the ESP32 and the ESP32-P4 with DGX
+0.8.0 of the registry and a keyboard font made at the build.
 
 - **DGX 0.8** (`jef-sure/dgx` ^0.8.0, 0.7 no more). DGX-DI used none of
   what 0.8 took away (Arial and Verdana, for their licenses): only its host

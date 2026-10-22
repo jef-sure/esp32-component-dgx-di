@@ -14,6 +14,12 @@ pixels of an area one by one, dgx_bw_page_screen.h).
   board the keyboard of the Russian template typed all its tasks in a font
   DGX made of the layout at the build; the pad is not yet tried on a board
   with DGX 0.7.
+- **DGX 0.8** (`jef-sure/dgx` ^0.8.0). DGX-DI used none of what 0.8 took
+  away (Arial and Verdana, for their licenses): only its host test of the
+  editor's labels drew in them, and it draws in their free successors,
+  `LiberationSansRegular12()` and `DejaVuSansBook32()`, the capital of the
+  first still of an odd height. The host tests take DGX's sources and stubs
+  of ESP-IDF from DGX's own `host/dgx_host.mk`, so the list follows DGX.
 - **README:** installed from the registry, DGX-DI and DGX both go into
   `managed_components/`, and that is all. Only a checkout of DGX of one's
   own, in place of the registry's, must sit in a directory named

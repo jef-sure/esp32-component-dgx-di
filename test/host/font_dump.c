@@ -11,14 +11,14 @@
 #include "dgx_font.h"
 #include "drivers/vscreen.h"
 
-dgx_font_t *ArialRegular12(void);
+dgx_font_t *LiberationSansRegular12(void);
 dgx_font_t *TerminusTTFMedium12(void);
-dgx_font_t *VerdanaRegular32(void);
+dgx_font_t *DejaVuSansBook32(void);
 
 static const struct {
     const char *file;
     dgx_font_t *(*font)(void);
-} fonts[] = {{"ArialRegular12.c", ArialRegular12}, {"TerminusTTFMedium12.c", TerminusTTFMedium12}, {"VerdanaRegular32.c", VerdanaRegular32}};
+} fonts[] = {{"LiberationSansRegular12.c", LiberationSansRegular12}, {"TerminusTTFMedium12.c", TerminusTTFMedium12}, {"DejaVuSansBook32.c", DejaVuSansBook32}};
 
 /* letters of a font, letters past it (a glyph missing advances by its first: a letter after one), several scripts */
 static const char *const strings[] = {"H",   "Ag", "1/2", "\xc3\xa4\xc3\x9f\xe2\x82\xac", "\xd0\x9f\xd1\x80\xd0\xb8\xd0\xb2\xd0\xb5\xd1\x82", "q Q",
@@ -63,16 +63,16 @@ int main(void)
         printf("]}");
     }
     /*
-     * the Latin keyboard on the 7" in Verdana 32 and in Arial 12 (its capital of an odd height): its keys' labels, white,
+     * the Latin keyboard on the 7" in DejaVu Sans 32 and in Liberation Sans 12 (its capital of an odd height): its keys' labels, white,
      * each in its key (the signs too: told apart by the editor)
      */
     printf("\n], \"keyboards\": [");
     for (int f = 0; f < 2; ++f) {
         dgx_di_keyboard_t kb;
         dgx_fill_rectangle(s, 0, 0, 1024, 600, 0);
-        const bool open = dgx_di_keyboard_open(&kb, s, 154, 86, dgx_di_keyboard_latin, dgx_di_keyboard_latin_size, f ? ArialRegular12() : VerdanaRegular32(), NULL);
+        const bool open = dgx_di_keyboard_open(&kb, s, 154, 86, dgx_di_keyboard_latin, dgx_di_keyboard_latin_size, f ? LiberationSansRegular12() : DejaVuSansBook32(), NULL);
         printf("%s\n  {\"layout\": \"latin\", \"font\": \"%s\", \"display\": {\"width\": 1024, \"height\": 600, \"widthMm\": 154, \"heightMm\": 86}, \"open\": %s, \"keys\": [",
-               f ? "," : "", f ? "ArialRegular12.c" : "VerdanaRegular32.c", open ? "true" : "false");
+               f ? "," : "", f ? "LiberationSansRegular12.c" : "DejaVuSansBook32.c", open ? "true" : "false");
         for (int k = 0; open && k < kb.count; ++k) {
             const dgx_di_rect_t *r = &kb.keys[k];
             printf("%s\n    {\"rect\": [%d, %d, %d, %d], \"pixels\": ", k ? "," : "", r->x, r->y, r->w, r->h);

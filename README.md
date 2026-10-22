@@ -83,7 +83,7 @@ dependencies:
   jef-sure/dgx-di: "^0.0.2"
 ```
 
-It brings DGX along (`jef-sure/dgx` 0.7.2 or a later 0.7: the pad lies in
+It brings DGX along (`jef-sure/dgx` 0.8.0 or a later 0.8: the pad lies in
 its overlay layer, and DGX makes a keyboard's font at the build): the
 component manager puts both into `managed_components/`, and that is all. It
 needs ESP-IDF 5.3 or later, and was built with 5.5.5, 6.0.3 and 6.1 for the
@@ -713,7 +713,7 @@ letters of the layout looked up), and gave it to `dgx_di_keyboard_open`:
 - give the keyboard `dgx_font_keys()` and `DGX_FONTS_BOARD_WIDTH_MM`,
   `_HEIGHT_MM` instead of the font made by hand and the millimetres written
   twice; drop the font's own `.c` from the program;
-- DGX 0.7.2 or later, from the registry; a checkout of DGX instead of it
+- DGX 0.8.0 or later, from the registry; a checkout of DGX instead of it
   needs `override_path` in `main/idf_component.yml`, or the registry's copy
   is taken and `dgx_fonts_board` is an unknown command.
 

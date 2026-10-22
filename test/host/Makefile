@@ -37,13 +37,10 @@ $(BUILD)/test_rects: test_rects.c check.h $(ROOT)/src/dgx_di_rects.c $(ROOT)/src
 	mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) -o $@ test_rects.c $(ROOT)/src/dgx_di_rects.c $(ROOT)/src/dgx_di_pointer.c
 
-# the pad draws with DGX: its sources built for the host as its own tests build them (DGX 0.7: by topic)
-DGX_SRCS  := $(addprefix $(DGX)/src/, screen/screen.c screen/screen_bus.c screen/pixels.c screen/bitmap.c \
-               draw/draw.c draw/lines.c draw/circles.c draw/polygons.c draw/ellipse.c draw/bezier.c draw/texture.c draw/scroll.c draw/gauge.c \
-               vscreen/vscreen.c vscreen/transfer.c vscreen/bw_screen.c vscreen/image.c vscreen/lut.c vscreen/scale.c vscreen/overlay.c \
-               text/font.c text/font_morph.c text/hw_font.c text/hw_morph.c \
-               morph/matrix.c morph/morph.c morph/morph_sources.c morph/morph_render.c bus/fb_area.c bus/fb_tiles.c bus/fb_flip.c)
-DGX_FLAGS := -I$(DGX)/test/host/stubs -I$(DGX)/src -include $(DGX)/test/host/stubs/esp_log.h -Wno-format -Wno-sign-compare
+# the pad draws with DGX: its sources and the stubs of ESP-IDF for the host, as DGX gives them (0.8: host/dgx_host.mk)
+include $(DGX)/host/dgx_host.mk
+DGX_SRCS  := $(DGX_HOST_SRCS_SCREEN) $(DGX_HOST_SRCS_DRAW) $(DGX_HOST_SRCS_VSCREEN) $(DGX_HOST_SRCS_TEXT) $(DGX_HOST_SRCS_MORPH) $(DGX_HOST_SRCS_FB)
+DGX_FLAGS := $(DGX_HOST_CPPFLAGS) -I$(DGX)/src -Wno-format -Wno-sign-compare
 
 $(BUILD)/test_pad: test_pad.c check.h $(ROOT)/src/dgx_di_pad.c $(ROOT)/src/dgx_di_pad_layouts.c $(ROOT)/src/dgx_di_pointer.c $(ROOT)/include/dgx_di.h $(ROOT)/include/dgx_di_pad.h
 	mkdir -p $(BUILD)
@@ -66,7 +63,7 @@ check-layouts:
 	cmp $(BUILD)/dgx_di_keyboard_layouts.c $(ROOT)/src/dgx_di_keyboard_layouts.c && echo "the ready layouts: as their JSON makes them"
 
 # text drawn by DGX in some of its own fonts, and the Latin keyboard's labels in one: the editor's labels compared
-DGX_FONTS := $(addprefix $(DGX)/src/fonts/, ArialRegular12.c TerminusTTFMedium12.c VerdanaRegular32.c)
+DGX_FONTS := $(addprefix $(DGX)/src/fonts/, LiberationSansRegular12.c TerminusTTFMedium12.c DejaVuSansBook32.c)
 $(BUILD)/font_dump: font_dump.c $(KEYBOARD) $(ROOT)/include/dgx_di_keyboard.h
 	mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(DGX_FLAGS) -o $@ font_dump.c $(KEYBOARD) $(DGX_FONTS) $(DGX_SRCS) -lm

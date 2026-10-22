@@ -227,3 +227,12 @@ html, body {
     color: #778;
     font-size: 0.85em;
 }
+
+/* the fonts of the computer to choose from, the letters a font has not */
+.kb-fonts {
+    font-size: 0.85em;
+}
+
+.kb-lacking {
+    color: #b02a37;
+}

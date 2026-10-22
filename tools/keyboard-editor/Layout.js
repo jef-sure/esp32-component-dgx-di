@@ -130,6 +130,12 @@ const KeyboardLayout = (() => {
                 });
             });
         });
+        const font = layout.font;
+        if (font && !(typeof font.dgx === 'string' && font.dgx) && !((font.postscript || font.family) && (font.mm > 0 || font.px >= 1)))
+            warning('the font of the labels: neither a font of DGX by its name nor a face of a file at a size in millimetres');
+        if (font && !font.dgx && !font.postscript) warning('the font of the labels has no PostScript name: the build does not find its face');
+        if (font && font.mm && display && Math.abs(display.width / display.widthMm - display.height / display.heightMm) > 0.05 * display.width / display.widthMm)
+            warning(`the display's pixels and millimetres disagree by more than 5 %: DGX does not make a font of millimetres for it`);
         if (display && !out.some(o => o.level === 'error') && !place(layout, display)) error(`it does not fit the display of ${display.width}x${display.height}`);
         return out;
     }
@@ -142,6 +148,20 @@ const KeyboardLayout = (() => {
         return out;
     }
     const inline = value => '{' + Object.entries(value).map(([n, v]) => JSON.stringify(n) + ': ' + JSON.stringify(v)).join(', ') + '}';
+    // the font the labels are made for, its fields in the order of the format: a font of DGX by its name, or a face of a
+    // font file (as fontconfig names it) at a size in millimetres (a layout of before: in pixels)
+    function cleanFont(font) {
+        const out = {};
+        for (const name of ['dgx', 'family', 'style', 'postscript', 'mm', 'px']) if (font[name] !== undefined && font[name] !== '') out[name] = font[name];
+        return out;
+    }
+    // millimetres as pixels of a display, as DGX's font needs count them: across, rounded half to even (Python's round)
+    function mmToPx(mm, display) {
+        const x = mm * display.width / display.widthMm;
+        return Math.abs(x - Math.floor(x) - 0.5) < 1e-9 ? 2 * Math.round(x / 2) : Math.round(x);
+    }
+    // the pixels of the layout's font on a display: of its millimetres, or its pixels (a layout of before)
+    const fontPx = (font, display) => font.mm ? mmToPx(font.mm, display) : font.px;
 
     // the layout as the file of the editor: one row of keys a line, so that it reads and compares well
     function toJson(layout) {
@@ -149,6 +169,7 @@ const KeyboardLayout = (() => {
         lines.push(`    "format": ${JSON.stringify(Format.name)},`, `    "version": ${Format.version},`, `    "name": ${JSON.stringify(layout.name || '')},`);
         for (const name of ['keyH', 'unitW', 'gap', 'margin', 'radius']) lines.push(`    ${JSON.stringify(name)}: ${layout[name]},`);
         lines.push('    "theme": ' + inline({ backTop: t.backTop, backBottom: t.backBottom, key: t.key, keySpecial: t.keySpecial, keyPressed: t.keyPressed, label: t.label }) + ',');
+        if (layout.font) lines.push('    "font": ' + inline(cleanFont(layout.font)) + ',');
         lines.push('    "pages": [');
         layout.pages.forEach((page, p) => {
             lines.push(`        {"name": ${JSON.stringify(page.name || '')}, "rows": [`);
@@ -219,7 +240,7 @@ const KeyboardLayout = (() => {
         return null;
     }
 
-    return { Format, SHIFT, PAGE, Actions, Limits, Displays, pixels, quarters, code, special, place, lay, typed, label, rgb565, hex565, mix565, problems, cleanKey, toJson, starter, check, Templates, template };
+    return { Format, SHIFT, PAGE, Actions, Limits, Displays, pixels, quarters, code, special, place, lay, typed, label, rgb565, hex565, mix565, problems, cleanKey, cleanFont, mmToPx, fontPx, toJson, starter, check, Templates, template };
 })();
 
 if (typeof module === 'object') module.exports = KeyboardLayout;

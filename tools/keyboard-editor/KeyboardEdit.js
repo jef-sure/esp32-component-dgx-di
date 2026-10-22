@@ -35,10 +35,14 @@ const KeyboardEdit = {
     methods: {
         keys(event) {
             if (event.key === 'Escape') this.menu = false;
-            if (event.target.tagName === 'INPUT' || event.target.tagName === 'SELECT') return;
-            const z = event.key.toLowerCase() === 'z' && (event.ctrlKey || event.metaKey);
+            // a field of text keeps the browser's own undo; a list, a box, a color, a button have none
+            const t = event.target;
+            if (t.tagName === 'TEXTAREA' || t.isContentEditable || (t.tagName === 'INPUT' && !/^(button|checkbox|color|file|radio|range|reset|submit)$/.test(t.type))) return;
+            // the letter of a shortcut whatever the layout: the key's own if Latin (QWERTZ, AZERTY), else its place (Ctrl+Я is Ctrl+Z)
+            const letter = /^[a-z]$/i.test(event.key) ? event.key.toLowerCase() : /^Key[A-Z]$/.test(event.code) ? event.code.slice(3).toLowerCase() : '';
+            const z = letter === 'z' && (event.ctrlKey || event.metaKey);
             if (z && !event.shiftKey) this.keyboardStore.undo(), event.preventDefault();
-            else if ((z && event.shiftKey) || (event.key.toLowerCase() === 'y' && event.ctrlKey)) this.keyboardStore.redo(), event.preventDefault();
+            else if ((z && event.shiftKey) || (letter === 'y' && event.ctrlKey)) this.keyboardStore.redo(), event.preventDefault();
         },
         // the menu of templates: closed by a click elsewhere or by Escape
         away(event) {
@@ -55,8 +59,10 @@ const KeyboardEdit = {
             this.$nextTick(() => this.$refs.download.click());
             this.keyboardStore.message = `saved as ${this.fileName}: python3 tools/keyboard_blob.py ${this.fileName} out.kbd makes the blob`;
         },
+        // a layout of JSON; a font (a file of TrueType or OpenType, a font of DGX: its C or the JSON of dgx_ge_font.py)
         read(file) {
             if (!file) return;
+            if (/\.(ttf|otf|ttc|woff2?|c)$/i.test(file.name) || /\.json$/i.test(file.name)) return this.keyboardStore.openFontFile(file);
             const reader = new FileReader();
             reader.onload = () => this.keyboardStore.open(reader.result, file.name);
             reader.readAsText(file);

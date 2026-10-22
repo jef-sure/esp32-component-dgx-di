@@ -1,5 +1,41 @@
 # Changes
 
+## Unreleased
+
+On DGX 0.8: a keyboard's font made by DGX at the build, of the layout's face
+and size with the letters of its labels, and the keyboard editor drawing the
+labels in that font.
+
+- **DGX 0.8** (`jef-sure/dgx` ^0.8.0, 0.7 no more). DGX-DI used none of
+  what 0.8 took away (Arial and Verdana, for their licenses): only its host
+  test of the editor's labels drew in them, and it draws in their free
+  successors, `LiberationSansRegular12()` and `DejaVuSansBook32()`, the
+  capital of the first still of an odd height. The host tests take DGX's
+  sources and stubs of ESP-IDF from DGX's own `host/dgx_host.mk`, so the
+  list follows DGX.
+- **The keyboard editor draws the labels in the font chosen:** the
+  browser's own, a font of the computer (Chrome and Edge list them), a font
+  file (TTF, OTF), or a font of DGX (the C of font2c, the JSON of DGX-GE's
+  `dgx_ge_font.py`), drawn pixel for pixel where DGX-DI draws it (compared
+  with DGX's own drawing, glyph and label). A key whose letters the font has
+  not is marked and told among the problems. The font is saved with the
+  layout (`"font"`: a face by its PostScript name at a size in millimetres,
+  or a font of DGX by its name). The blob is the same as before.
+- **Undo in the keyboard editor** on any layout of the computer's keyboard
+  (Ctrl+Я is Ctrl+Z on ЙЦУКЕН, which typed nothing) and from a list; its
+  steps live while the tab does, through a reload.
+- **`dgx_di_keyboard_font(<name> <layout.json> [FILE <font.c>])`** for a
+  program's CMakeLists (DGX-DI's `project_include.cmake`): the font of a
+  layout's labels asked of DGX's font needs, its face and size as the
+  editor saved them, the letters of its labels in a file of the build,
+  written only when they change; DGX need not know the layout. The program
+  gives the keyboard `dgx_font_<name>()`.
+- `tools/keyboard_blob.py --letters OUT layout.json` writes the letters of
+  the labels past ASCII, for a font made by hand with `font2c -f OUT`.
+- On the 7-inch board the keyboard of the Russian template typed all its
+  tasks in a font DGX 0.7.2 made of the layout at the build; on DGX 0.8 it
+  is built, not yet tried on a board.
+
 ## 0.1.1 - 2026-10-21
 
 On DGX 0.7, which has its sources grouped by topic and mixes the overlay

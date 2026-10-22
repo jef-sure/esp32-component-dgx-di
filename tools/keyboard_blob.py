@@ -6,6 +6,7 @@ tools/keyboard-editor writes and reads, a blob.
     keyboard_blob.py layout.json out.kbd                  the blob, a file to embed (EMBED_FILES)
     keyboard_blob.py --c NAME layout.json out.c           the blob as a C array: const uint8_t NAME[], const size_t NAME_size
     keyboard_blob.py --builtin out.c layout.json...       DGX-DI's own layouts: dgx_di_keyboard_<name> and _size
+    keyboard_blob.py --letters out.txt layout.json        the letters of its labels past ASCII, for font2c -f out.txt
 
 The JSON (version 1):
 
@@ -18,7 +19,10 @@ The JSON (version 1):
 a key {"char": "q", "upper": "Q"} types a character (upper: with shift), {"action": "erase" | "done" | "cancel" |
 "shift"} edits, {"page": 1} goes to that page; each may have "label" (drawn on it instead) and "width" (in quarters of
 a key, 4 one key). keyH is the height of a key, unitW its width at most, gap between keys, margin between them and the
-edges of the band, radius of the corners; the band from backTop to backBottom.
+edges of the band, radius of the corners; the band from backTop to backBottom. "font", if there, is the font the labels
+were made for in the editor, not in the blob (the program gives the keyboard its font): {"dgx": "DejaVuSansBook30"}, a
+font of DGX by the name of its function, or {"family": "DejaVu Sans", "style": "Book", "postscript": "DejaVuSans",
+"px": 30}, a face of a font file (fontconfig finds it: fc-list :postscriptname=DejaVuSans) at a size in pixels.
 
 The blob (little-endian):
 
@@ -144,6 +148,18 @@ def blob(layout):
     return bytes(header + head + keys + strings.data)
 
 
+def letters(layout):
+    """The letters its labels have past ASCII, sorted, as the editor draws the labels: a key's own label, else its
+    character and its character with shift (a key that edits or the space has none)."""
+    found = set()
+    for page in layout.get("pages") or []:
+        for row in page.get("rows") or []:
+            for key in row:
+                texts = [key["label"]] if key.get("label") else [key.get("char") or "", key.get("upper") or ""] if "char" in key else []
+                found |= {c for t in texts for c in t if ord(c) > 0x7E}
+    return "".join(sorted(found))
+
+
 def ident(name):
     s = re.sub(r"[^a-z0-9]+", "_", (name or "keyboard").lower()).strip("_") or "keyboard"
     return "_" + s if s[0].isdigit() else s
@@ -166,6 +182,7 @@ def main():
     ap = argparse.ArgumentParser(description="A layout of the keyboard of DGX-DI (JSON of tools/keyboard-editor) as a blob.")
     ap.add_argument("--c", metavar="NAME", help="write a C array NAME[] and NAME_size, not a binary file")
     ap.add_argument("--builtin", metavar="OUT", help="write DGX-DI's own layouts of the JSON files given into OUT")
+    ap.add_argument("--letters", metavar="OUT", help="write the letters of the labels past ASCII into OUT (for font2c -f OUT)")
     ap.add_argument("files", nargs="+", help="layout.json out (or, with --builtin, the layouts)")
     a = ap.parse_args()
     try:
@@ -179,6 +196,12 @@ def main():
                 out.append(array("dgx_di_keyboard_" + ident(layout.get("name")), blob(layout), os.path.basename(path)))
             with open(a.builtin, "w", encoding="utf-8") as f:
                 f.write("\n".join(out))
+            return
+        if a.letters:
+            if len(a.files) != 1:
+                ap.error("--letters OUT: one layout")
+            with open(a.letters, "w", encoding="utf-8") as f:
+                f.write(letters(read(a.files[0])))
             return
         if len(a.files) != 2:
             ap.error("a layout and where to write it")

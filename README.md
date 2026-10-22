@@ -83,10 +83,11 @@ dependencies:
   jef-sure/dgx-di: "^0.1.1"
 ```
 
-It brings DGX along (`jef-sure/dgx` 0.7 or a later 0.7: the pad lies in its
-overlay layer): the component manager puts both into
-`managed_components/`, and that is all. It needs ESP-IDF 5.3 or later, and
-was built with 5.5.5, 6.0.3 and 6.1 for the ESP32 and the ESP32-P4.
+It brings DGX along (`jef-sure/dgx` 0.8.0 or a later 0.8: the pad lies in
+its overlay layer, and DGX makes a keyboard's font at the build): the
+component manager puts both into `managed_components/`, and that is all. It
+needs ESP-IDF 5.3 or later, and was built with 5.5.5, 6.0.3 and 6.1 for the
+ESP32 and the ESP32-P4.
 
 To work on DGX-DI itself, check the repository out under the project's
 `components/` instead; the component manager still brings DGX into
@@ -678,14 +679,56 @@ the format, or a layout past the limits (4 pages, 5 rows, 48 keys a page),
 is refused.
 
 The labels are drawn in the font the program gives, so letters past ASCII
-need a font that has them. DGX makes one of any TTF with its `font2c` (in
-the DGX component, `font2c/`), a `.c` and a `.h` of the font:
+need a font that has them. The editor draws the labels in the font chosen
+there: a font of the computer, of a file, or a font of DGX (its C), the last
+pixel for pixel as the board draws it, and it marks the keys whose letters
+the font has not. The font is saved with the layout (`"font"`): a face by its
+PostScript name at a size in millimetres, or a font of DGX by its name.
 
-```sh
-cc font2c.c -o font2c $(pkg-config --cflags --libs freetype2)
-./font2c DejaVuSans.ttf 30 0x20 0x7e 0x401 0x401 0x410 0x44f 0x451 0x451  # ASCII and Russian
-./font2c DejaVuSans.ttf 30 0x20 0x7e 0xa0 0xff 0x20ac 0x20ac              # ASCII, ä ö ü ß and the rest of Latin-1, €
+With DGX 0.8 the program has DGX make that font at its build, of
+the layout's face and size with the letters of its labels, and gives the
+display's size in millimetres once:
+
+```cmake
+# main/CMakeLists.txt, after idf_component_register (paths from this file)
+dgx_fonts_board(PIXELS 1024 600 MM 154 86)
+dgx_di_keyboard_font(keys keys.json)
 ```
+
+```c
+#include "dgx_fonts.h"
+
+dgx_di_keyboard_open(&kb, screen, DGX_FONTS_BOARD_WIDTH_MM, DGX_FONTS_BOARD_HEIGHT_MM, keys_start, keys_end - keys_start,
+                     dgx_font_keys(), &field);
+```
+
+`dgx_di_keyboard_font(<name> <layout.json>)` comes with DGX-DI (its
+`project_include.cmake`): it reads the layout's font and the letters of its
+labels and asks DGX for them with `dgx_font_need`, so DGX need not know the
+layout. An edited layout configures the project again. DGX finds the face on
+the computer the program is built on, by its PostScript name, and stops the
+build if the face is not there or has not a letter of the labels; it makes
+one font of a face at a size for everything that asks for it. A font of
+DGX's own is taken as it is; a font of the program's own is given with
+`dgx_di_keyboard_font(keys keys.json FILE fonts/MyFont.c)`, its letters
+checked. DGX's font needs are told in its `docs/fonts-ru.md`.
+
+From 0.1.1 and earlier, where the program made the font by hand (font2c of
+a TTF, the letters of the layout looked up), and gave it to
+`dgx_di_keyboard_open`:
+
+- open the layout in the editor, choose its font there and save it: a layout
+  saved before 0.1.2 names none, and `dgx_di_keyboard_font` stops with
+  "names no font of its labels" without one;
+- in the program's CMakeLists give the display once, `dgx_fonts_board(PIXELS
+  … MM …)`, and `dgx_di_keyboard_font(keys keys.json)` (a name of the
+  program's choice; DGX's need names are of the whole project);
+- give the keyboard `dgx_font_keys()` and `DGX_FONTS_BOARD_WIDTH_MM`,
+  `_HEIGHT_MM` instead of the font made by hand and the millimetres written
+  twice; drop the font's own `.c` from the program;
+- DGX 0.8.0 or later, from the registry; a checkout of DGX instead of it
+  needs `override_path` in `main/idf_component.yml`, or the registry's copy
+  is taken and `dgx_fonts_board` is an unknown command.
 
 ### Rotate the screen
 
@@ -1009,8 +1052,13 @@ compare them with `src/dgx_di_keyboard_layouts.c` and
 with the C's on several displays, and the pad editor's colors with DGX's
 mixing (`tools/keyboard-editor/test.js`, `tools/pad-editor/test.js`), and
 with both they check the editors' templates: nothing wrong on the displays
-they are for, and the tools make blobs of them. Each editor's actions, the
-mouse's too, are tested by its `test.html`, opened in a browser.
+they are for, and the tools make blobs of them. Fonts of DGX read by the
+keyboard editor are drawn as DGX draws them, compared pixel for pixel with
+`font_dump`. With CMake too, `dgx_di_keyboard_font()` runs as a script on the
+ready layouts and the templates: the letters it gives DGX are those of the
+labels, its requests are as DGX takes them, and its letters are not written
+again unchanged. Each editor's actions, the mouse's too, are tested by its
+`test.html`, opened in a browser.
 
 ## Repository layout
 
@@ -1027,6 +1075,7 @@ tools/keyboard_blob.py          a keyboard layout's JSON as the blob the keyboar
 tools/keyboard-editor/          the editor of keyboard layouts (index.html), the ready ones in examples/
 tools/pad_blob.py               a pad layout's JSON as the blob the pad opens
 tools/pad-editor/               the editor of pad layouts and their pictures (index.html), the ready ones in examples/
+project_include.cmake           dgx_di_keyboard_font() for a program's CMakeLists: the font of a keyboard layout of DGX
 test/host/                      the host tests
 ```
 

@@ -1,0 +1,6 @@
+# made by the build and the component manager
+build/
+managed_components/
+dependencies.lock
+sdkconfig
+sdkconfig.old

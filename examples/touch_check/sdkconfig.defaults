@@ -1,0 +1,3 @@
+# what the check needs of any board; the chip's own after it (sdkconfig.defaults.<target>)
+CONFIG_FREERTOS_HZ=1000
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192

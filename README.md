@@ -277,6 +277,12 @@ The panel lies under the display of 800x1280 (its own orientation) swapped, its 
 the calibration of 3 rounds: {.version = 1, .size = sizeof(dgx_di_calibration_t), .x_min = 0, .x_max = 1663, ...}
 ```
 
+Or build [examples/touch_check](examples/touch_check) for the board: it
+runs this measure behind a page that tells what to do, then tries the
+gestures and the pad with the calibration, every step drawn on the display.
+A board is a file of it (`main/board_<name>.c`: the display, the panel, the
+display's millimetres) and a choice in its menuconfig.
+
 Paste the last one into the program and give it to the pointer:
 
 ```c
@@ -749,7 +755,8 @@ them again.
 ## Boards it was tried on
 
 Each was calibrated by `dgx_di_calibrate_measure()`, three rounds. Then the
-gestures were tried by a script drawn on the display itself: every swipe from
+gestures were tried by a script drawn on the display itself (the 4.3-inch's
+by [examples/touch_check](examples/touch_check), its pad the same way): every swipe from
 an edge, four plain swipes, a long press, two fingers at once, one held while
 another moves. The pad was tried the same way: the classic pad over a moving
 picture; A, B, X and Y together, up, the diagonal down and left, right with
@@ -759,13 +766,23 @@ A, START, BACK, and a circle on the cross in one touch.
 | --- | --- | --- | --- | --- | --- | --- |
 | Guition JC8012P4A1C, 10.1" (ESP32-P4) | JD9365 800x1280, DSI | GSL3680 at 0x40 (SDA 7, SCL 8, reset 22, int 21), `dgx_di_gsl3680.h`, `--range 1664x896` | `DGX_DI_SWAP_XY \| DGX_DI_MIRROR_Y` | 18.1 px, 5.0 | 11 of 11 | 9 of 9 |
 | Guition JC1060P470, 7" (ESP32-P4) | JD9165 1024x600, DSI | GT911 at 0x5d (SDA 7, SCL 8; reset and int not needed), `esp_lcd_touch_gt911` | none | 10.1 px, 3.3 | 11 of 11 | 9 of 9 |
+| Guition JC4827W543, 4.3" (ESP32-S3) | NV3041A 480x272, QSPI | GT911 at 0x5d (SDA 8, SCL 4, reset 38, int 3: its address set at the reset), `esp_lcd_touch_gt911`, `.x_max = 480, .y_max = 272` | `DGX_DI_MIRROR_X \| DGX_DI_MIRROR_Y` | 10.9 px, 1.6 | 11 of 11 | 9 of 9, a pad of its own |
 | CYD (ESP32-2432S028R), 2.8" (ESP32) | ILI9341 240x320, SPI | XPT2046 on its own SPI (SCK 25, MOSI 32, MISO 39, CS 33), `esp_lcd_touch_xpt2046`, its ADC values 0..4095 | `DGX_DI_MIRROR_X` | 15.6 px, 1.3 | 9 of 9 (one finger) | no |
 
 "Off" is how far the targets were taken from where they were meant, on
 average, as the measure prints it. The displays measured 217 x 136 mm,
-154 x 86 mm and 58 x 43 mm, lying wide. The 10-inch sensor does not report its
+154 x 86 mm and 58 x 43 mm, lying wide; the 4.3-inch is 95 x 54 mm by its
+panel's sheet. The 10-inch sensor does not report its
 last 36 pixels along the bottom of the display turned to 1280x800; the band of
 an edge (9 mm) covers that.
+
+The GT911 of the 4.3-inch gives the pixels of its display, though it tells of
+itself a field of 1085x600 and a configuration of 1024x600: give its driver
+the display's size, not what it reads. The classic pad is for a tablet and
+does not fit that display: its cross of 40 mm would cover most of the 54 mm
+and the X and BACK beside it. The board's file in `examples/touch_check`
+has the classic's places made smaller, a cross of 26 mm and buttons of
+10 mm, and that pad was tried.
 
 ## How it fits together
 
@@ -1082,6 +1099,7 @@ tools/pad_blob.py               a pad layout's JSON as the blob the pad opens
 tools/pad-editor/               the editor of pad layouts and their pictures (index.html), the ready ones in examples/
 project_include.cmake           dgx_di_keyboard_font() for a program's CMakeLists: the font of a keyboard layout of DGX
 test/host/                      the host tests
+examples/touch_check/           the measure and the try of a board's panel, on the board; a file per board
 ```
 
 ## License

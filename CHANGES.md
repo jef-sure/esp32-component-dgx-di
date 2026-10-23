@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **examples/touch_check:** the measure of a board's panel and the try of
+  its gestures and pad, on the board, every step told and drawn on its
+  display, the results there and in the log; a board is a file of it and a
+  choice in its menuconfig. Its first board, the Guition JC4827W543 (4.3",
+  ESP32-S3, GT911), was tried by it: 10.9 px off without a calibration and
+  1.6 with it, gestures 11 of 11, its own smaller pad 9 of 9 (the classic
+  does not fit 95 x 54 mm). Not in the package.
+- **README:** the JC4827W543 among the boards it was tried on.
+
 - **README:** the pad needs DGX's virtual screen, `CONFIG_DGX_ENABLE_VSCREEN=y`
   (off in DGX unless asked for); without it a program does not link.
 

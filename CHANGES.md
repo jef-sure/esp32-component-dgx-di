@@ -1,7 +1,15 @@
 # Changes
 
-## Unreleased
+## 0.1.3 - 2026-10-30
 
+On DGX 0.10; the code of DGX-DI is as it was. Checked by the host tests
+against DGX 0.10.1 and by ESP-IDF 5.5.5, 6.0.3 and 6.1 builds for the ESP32
+and the ESP32-P4 with DGX 0.10.1 of the registry and a keyboard font made at
+the build.
+
+- **DGX 0.10** (`jef-sure/dgx` ^0.10.1, 0.8 no more). DGX-DI used none of
+  what 0.9 and 0.10 changed. 0.10.1 is asked for because 0.10.0 is not in the
+  registry.
 - **README:** the pad needs DGX's virtual screen, `CONFIG_DGX_ENABLE_VSCREEN=y`
   (off in DGX unless asked for); without it a program does not link.
 

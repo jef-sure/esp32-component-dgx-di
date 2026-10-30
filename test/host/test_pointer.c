@@ -510,5 +510,16 @@ int main(void)
         f.n = 1, f.points[0] = point(440, 240, id);
         CHECK(dgx_di_pointer_read(&p, 240) == 1 && b->sees && b->x == 440 && !b->pressed && !p.fingers[0].sees);
     }
+    /* no screen: nothing is read and nothing fails */
+    {
+        fake_t f = fake(0, 479, 0, 271);
+        f.n = 1, f.points[0] = point(10, 10, 1);
+        dgx_di_pointer_t p;
+        dgx_di_pointer_init(&p, &f.device, 0, NULL);
+        CHECK(dgx_di_pointer_read(&p, 0) == 0 && !p.fingers[0].down);
+        CHECK(dgx_di_pointer_read(&p, 100) == 0);
+        int x, y;
+        CHECK(!dgx_di_pointer_first(&p, &x, &y));
+    }
     CHECK_DONE();
 }

@@ -1,15 +1,29 @@
 # Changes
 
-## Unreleased
+## 0.1.4 - 2026-10-30
 
+A pointer a header can name, a crash fixed, an option of a tool gone, the numbers of the 4.3-inch
+board as they are on DGX 0.10. Still on DGX 0.10. Checked by the host tests against DGX 0.10.1 and
+by ESP-IDF 5.5.5, 6.0.3 and 6.1 builds for the ESP32 and the ESP32-P4 with DGX 0.10.1 of the
+registry and a keyboard font made at the build.
+
+- **`dgx_di_pointer_t`** has a struct tag, `struct dgx_di_pointer`: a header can name it without
+  including `dgx_di.h`.
+- **`dgx_di_pointer_read()`** no longer crashes on a pointer made with no screen: it reads nothing.
+- **`tools/keyboard_blob.py --letters`** is gone: it served a font made by hand with `font2c -f`,
+  which leaves out a letter the face lacks and says nothing. `dgx_di_keyboard_font()` writes the
+  letters, and a letter the font lacks stops the build.
 - **examples/touch_check:** the measure of a board's panel and the try of
   its gestures and pad, on the board, every step told and drawn on its
   display, the results there and in the log; a board is a file of it and a
   choice in its menuconfig. Its first board, the Guition JC4827W543 (4.3",
-  ESP32-S3, GT911), was tried by it: 10.9 px off without a calibration and
-  1.6 with it, gestures 11 of 11, its own smaller pad 9 of 9 (the classic
-  does not fit 95 x 54 mm). Not in the package.
-- **README:** the JC4827W543 among the boards it was tried on.
+  ESP32-S3, GT911), was tried by it on DGX 0.8: gestures 11 of 11, its own
+  smaller pad 9 of 9 (the classic does not fit 95 x 54 mm). Its calibration
+  is one measured on DGX 0.10, flags 0, 4.4 px off without it and 2.4 with
+  it; the numbers of 2026-10-23 belonged to DGX 0.8, where MADCTL did not
+  reach the panel. Built on DGX 0.10.1, not yet run on it. Not in the package.
+- **README:** the JC4827W543 among the boards it was tried on, lying as it
+  does on DGX 0.10.
 
 ## 0.1.3 - 2026-10-30
 

@@ -1,7 +1,8 @@
 """dgx_di_keyboard_font() of project_include.cmake checked, run by CMake as a script with dgx_font_need a stub: of each
 layout given, the letters it writes (as the keyboard draws the labels: a key's label, else its character and the one
 with shift) and the request it makes of DGX for its font (millimetres, pixels of a layout of before, a font of DGX, a
-font of the program's own); a layout naming no font, or not a layout, stops it.
+font of the program's own); a layout naming no font, or not a layout, stops it. A template the editor wrote has its
+letters past ASCII beside it (<layout>.letters): the same letters.
 
     python3 check_keyboard_font.py <work dir> <layout.json>...
 """
@@ -30,11 +31,18 @@ def labels(layout):
 
 
 def main(work, layouts):
-    failures, checked = [], 0
+    failures, checked, compared = [], 0, 0
     os.makedirs(work, exist_ok=True)
     for path in layouts:
         layout = json.load(open(path, encoding="utf-8"))
         name = os.path.splitext(os.path.basename(path))[0]
+        # the letters the editor asks of a font: those the build asks for, past ASCII
+        written = os.path.splitext(path)[0] + ".letters"
+        if os.path.exists(written):
+            editors = set(open(written, encoding="utf-8").read())
+            if editors != {c for c in labels(layout) if ord(c) > 0x7E}:
+                failures.append(f"{name}: the editor's letters not as the labels")
+            compared += 1
         for font, want in (({"family": "DejaVu Sans", "style": "Book", "postscript": "DejaVuSans", "mm": 4.5}, "SIZE;4.5mm;POSTSCRIPT;DejaVuSans;TEXTS;"),
                            ({"family": "DejaVu Sans", "style": "Book", "postscript": "DejaVuSans", "px": 30}, "SIZE;30px;POSTSCRIPT;DejaVuSans;TEXTS;"),
                            ({"dgx": "TerminusTTFMedium12"}, "DGX;TerminusTTFMedium12;TEXTS;")):
@@ -78,7 +86,7 @@ def main(work, layouts):
         failures.append(f"not a layout: {r.returncode} {r.stderr.strip()}")
     if failures:
         sys.exit("\n".join(failures))
-    print(f"dgx_di_keyboard_font: the letters and the request of {checked} layouts' fonts, as DGX is to be asked")
+    print(f"dgx_di_keyboard_font: the letters and the request of {checked} layouts' fonts, as DGX is to be asked; {compared} of the editor's letters the same")
 
 
 if __name__ == "__main__":

@@ -94,6 +94,7 @@ static int32_t far2(const dgx_di_finger_t *f, int x, int y)
 /* near: within a twentieth of the display's smaller side, closer than two fingertips can be; far: past an eighth */
 static int32_t side_of(const dgx_di_pointer_t *p)
 {
+    if (!p->screen) return 0; /* a read takes no points without a screen: no finger to tell from another */
     return p->screen->width < p->screen->height ? p->screen->width : p->screen->height;
 }
 

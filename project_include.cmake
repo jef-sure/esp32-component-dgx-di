@@ -8,8 +8,8 @@
 # The program gives the keyboard dgx_font_<need>() of dgx_fonts.h. Paths are from the CMakeLists it is written in; an
 # edited layout configures the project again.
 
-# the letters a layout's labels show, as the keyboard draws them (keyboard_blob.py letters(), the editor's): a key's own
-# label, else its character and its character with shift; a key that edits has none
+# the letters a layout's labels show, as the keyboard draws them (the editor's): a key's own label, else its character
+# and its character with shift; a key that edits has none
 function(_dgx_di_keyboard_letters json out)
     set(letters "")
     string(JSON pages ERROR_VARIABLE error LENGTH "${json}" pages)

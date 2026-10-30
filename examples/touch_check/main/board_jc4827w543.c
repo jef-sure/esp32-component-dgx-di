@@ -3,9 +3,9 @@
  * dgx_nv3041a_init, as DGX's README has it), its backlight on GPIO1; a GT911 on I2C (SDA 8, SCL 4), its reset on
  * GPIO38 and its interrupt on GPIO3, the ESP32's to drive: the address is chosen at its reset, 0x5D.
  *
- * Its GT911 gives the pixels of the display, 0..479 and 0..271, the panel turned half round under it (both axes
- * mirrored), though it tells of itself a field of 1085x600 and a configuration of 1024x600 (a 7-inch one's): its range
- * is given here, not read. On one board of these, 2026-10-23, it also answered at 0x14 after the reset.
+ * Its GT911 gives the pixels of the display, 0..479 and 0..271, though it tells of itself a field of 1085x600 and a
+ * configuration of 1024x600 (a 7-inch one's): its range is given here, not read. On one board of these, 2026-10-23,
+ * it also answered at 0x14 after the reset.
  */
 #include "sdkconfig.h"
 
@@ -40,11 +40,10 @@ const dgx_di_pad_item_t *const board_pad       = small_pad;
 const int                      board_pad_count = sizeof small_pad / sizeof small_pad[0];
 
 /*
- * Measured by this check on one board of these, 2026-10-23: 3 rounds of 9 targets. The panel lies turned half round
- * (flags 3: both axes mirrored); touches were 10.9 pixels off on average (18 at worst) without it, 1.6 (4) with it. It
- * neither showed a finger before a press nor lost one held: up after 30 ms.
+ * Measured on one board of these under DGX 0.10: 4.4 pixels off on average without it, 2.4 with it. The numbers of
+ * 2026-10-23 (flags 3) belonged to DGX 0.8, where MADCTL did not reach the panel and the picture was upside down.
  */
-static const dgx_di_calibration_t calibration = {.version = 1, .size = sizeof(dgx_di_calibration_t), .x_min = 0, .x_max = 479, .y_min = 0, .y_max = 271, .width = 480, .height = 272, .flags = 3, .knots_x = 3, .knots_y = 3, .rounds = 3, .affine = {65793, 585, -8323, 570, 69648, -1428555}, .x = {{35, 34}, {237, 240}, {446, 445}}, .y = {{35, 34}, {135, 136}, {237, 237}}, .down_ms = 0, .up_ms = 30, .blink_ms = 0, .gap_ms = 0, .off_tenths = 109, .worst_tenths = 180, .left_tenths = 16, .left_worst_tenths = 40};
+static const dgx_di_calibration_t calibration = {.version = 1, .size = sizeof(dgx_di_calibration_t), .x_min = 0, .x_max = 479, .y_min = 0, .y_max = 271, .width = 480, .height = 272, .flags = 0, .knots_x = 3, .knots_y = 3, .rounds = 3, .affine = {66171, 447, -375665, -881, 67265, -193200}, .x = {{34, 34}, {240, 241}, {445, 445}}, .y = {{34, 33}, {136, 137}, {237, 236}}, .down_ms = 0, .up_ms = 30, .blink_ms = 0, .gap_ms = 0, .off_tenths = 44, .worst_tenths = 90, .left_tenths = 24, .left_worst_tenths = 50};
 const dgx_di_calibration_t *const board_calibration = &calibration;
 
 dgx_screen_t *board_display(void)

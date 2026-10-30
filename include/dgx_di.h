@@ -135,7 +135,7 @@ typedef struct {
     uint32_t since_ms;          /* when the device began to see it, or to lose it, against down as it stands */
 } dgx_di_finger_t;
 
-typedef struct {
+typedef struct dgx_di_pointer {
     dgx_di_device_t     *device;
     const dgx_screen_t  *screen;          /* the display: its size and orientation as they are now */
     uint8_t              flags;           /* DGX_DI_*: how the device lies under the display in its own orientation */

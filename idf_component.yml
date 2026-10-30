@@ -1,5 +1,5 @@
 ## IDF Component Manager Manifest File
-version: "0.1.3"
+version: "0.1.4"
 description: "Touch input for DGX displays: the fingers of a touch panel as fingers of the display, turned with the screen; a calibration measured on the board; gestures in millimetres; buttons the program draws; a translucent game pad in a layer of DGX and a keyboard on the display, with editors of their layouts and looks; a GSL3680 driver and any esp_lcd_touch panel"
 url: https://github.com/jef-sure/esp32-component-dgx-di
 repository: https://github.com/jef-sure/esp32-component-dgx-di.git
@@ -49,6 +49,7 @@ files:
     - "build/**"
     - ".git/**"
     - "test/**"              # the host tests, of the repository only
+    - "examples/**"          # they take DGX-DI of this repository: read on GitHub
     - "**/__pycache__/**"
     - "docs/design-ru.md"    # internal
     - "docs/decisions-ru.md" # internal

@@ -1,0 +1,19 @@
+menu "Touch check"
+
+choice TOUCH_CHECK_BOARD
+    prompt "Board"
+    default TOUCH_CHECK_BOARD_JC4827W543
+    help
+        The board the check runs on: its display, its touch panel and the display's size in millimetres
+        come from its file, main/board_<name>.c. The board's drivers of DGX are selected here; the chip
+        and its PSRAM come from sdkconfig.defaults.<target>.
+
+config TOUCH_CHECK_BOARD_JC4827W543
+    bool "Guition JC4827W543, 4.3\" (ESP32-S3): NV3041A 480x272 on QSPI, GT911"
+    select DGX_ENABLE_SPI
+    select DGX_ENABLE_NV3041A
+    select DGX_ENABLE_VSCREEN
+
+endchoice
+
+endmenu

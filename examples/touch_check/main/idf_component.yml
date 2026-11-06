@@ -1,5 +1,8 @@
 dependencies:
   idf:
     version: ">=5.3.0"
-  jef-sure/dgx: "^0.10.1"  # as DGX-DI asks; 0.8.2: the NV3041A of the JC4827W543; 0.8.3: its QSPI buffer
-  espressif/esp_lcd_touch_gt911: "^1"
+  jef-sure/dgx: "^0.10.10"  # as DGX-DI asks; 0.8.2: the NV3041A of the JC4827W543; 0.8.3: its QSPI buffer; 0.10.10: the mouse of its window
+  espressif/esp_lcd_touch_gt911:
+    version: "^1"
+    rules:  # the JC4827W543's panel: not on the computer
+      - if: "target != linux"

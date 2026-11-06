@@ -3,8 +3,9 @@ build/
 test/host/build/
 __pycache__/
 *.pyc
-# an editor's own settings
+# an editor's own settings, the index of clangd
 .vscode/
+.cache/
 # internal documents
 docs/design-ru.md
 docs/decisions-ru.md

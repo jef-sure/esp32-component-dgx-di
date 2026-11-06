@@ -2,6 +2,7 @@ menu "Touch check"
 
 choice TOUCH_CHECK_BOARD
     prompt "Board"
+    default TOUCH_CHECK_BOARD_COMPUTER if IDF_TARGET_LINUX
     default TOUCH_CHECK_BOARD_JC4827W543
     help
         The board the check runs on: its display, its touch panel and the display's size in millimetres
@@ -10,8 +11,14 @@ choice TOUCH_CHECK_BOARD
 
 config TOUCH_CHECK_BOARD_JC4827W543
     bool "Guition JC4827W543, 4.3\" (ESP32-S3): NV3041A 480x272 on QSPI, GT911"
+    depends on !IDF_TARGET_LINUX
     select DGX_ENABLE_SPI
     select DGX_ENABLE_NV3041A
+    select DGX_ENABLE_VSCREEN
+
+config TOUCH_CHECK_BOARD_COMPUTER
+    bool "The computer (the linux target): a window of DGX as the JC4827W543's display, the mouse as a finger"
+    depends on IDF_TARGET_LINUX
     select DGX_ENABLE_VSCREEN
 
 endchoice

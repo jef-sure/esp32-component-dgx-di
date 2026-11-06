@@ -1,5 +1,5 @@
 ## IDF Component Manager Manifest File
-version: "0.1.4"
+version: "0.1.5"
 description: "Touch input for DGX displays: the fingers of a touch panel as fingers of the display, turned with the screen; a calibration measured on the board; gestures in millimetres; buttons the program draws; a translucent game pad in a layer of DGX and a keyboard on the display, with editors of their layouts and looks; a GSL3680 driver and any esp_lcd_touch panel"
 url: https://github.com/jef-sure/esp32-component-dgx-di
 repository: https://github.com/jef-sure/esp32-component-dgx-di.git
@@ -10,7 +10,7 @@ dependencies:
   idf:
     version: ">=5.3.0"  # esp_driver_i2c, the I2C master driver as its own component
   jef-sure/dgx:
-    version: "^0.10.1"  # the screen a pointer and a touch are on, the overlay layer of a screen for the pad (since 0.6.6); 0.7: its sources by topic; 0.7.2: font needs, a keyboard's font made at the build; 0.8: its host build in host/dgx_host.mk; 0.10.1: the first 0.10 in the registry
+    version: "^0.10.10"  # the screen a pointer and a touch are on, the overlay layer of a screen for the pad (since 0.6.6); 0.7: its sources by topic; 0.7.2: font needs, a keyboard's font made at the build; 0.8: its host build in host/dgx_host.mk; 0.10.8: its window on the linux target of ESP-IDF; 0.10.10: the mouse of its window, the touch of dgx_di_host.h
 
 tags:
   - touch
@@ -34,6 +34,7 @@ files:
     - "idf_component.yml"
     - "CMakeLists.txt"
     - "project_include.cmake"  # dgx_di_keyboard_font() for a program's CMakeLists
+    - "host/**/*.mk"           # DGX-DI built on the computer with make, beside DGX's host/dgx_host.mk
     - "src/**/*.c"
     - "include/**/*.h"
     - "tools/**/*.py"
@@ -51,5 +52,7 @@ files:
     - "test/**"              # the host tests, of the repository only
     - "examples/**"          # they take DGX-DI of this repository: read on GitHub
     - "**/__pycache__/**"
+    - ".cache/**"            # the index of clangd, an editor's
+    - "**/.cache/**"
     - "docs/design-ru.md"    # internal
     - "docs/decisions-ru.md" # internal

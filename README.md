@@ -49,6 +49,7 @@ This is version 0.1.2. Its interfaces may still change.
   - [A keyboard on the display](#a-keyboard-on-the-display)
   - [A keyboard layout of your own](#a-keyboard-layout-of-your-own)
   - [Rotate the screen](#rotate-the-screen)
+  - [On the computer](#on-the-computer)
 - [Boards it was tried on](#boards-it-was-tried-on)
 - [How it fits together](#how-it-fits-together)
 - [Coordinates and orientation](#coordinates-and-orientation)
@@ -73,18 +74,19 @@ DGX-DI is an ESP-IDF component, published in the ESP Component Registry as
 `jef-sure/dgx-di`. Add it to a project:
 
 ```sh
-idf.py add-dependency "jef-sure/dgx-di^0.1.4"
+idf.py add-dependency "jef-sure/dgx-di^0.1.5"
 ```
 
 or put it into `main/idf_component.yml` yourself:
 
 ```yaml
 dependencies:
-  jef-sure/dgx-di: "^0.1.4"
+  jef-sure/dgx-di: "^0.1.5"
 ```
 
-It brings DGX along (`jef-sure/dgx` 0.10.1 or a later 0.10: the pad lies in
-its overlay layer, and DGX makes a keyboard's font at the build): the
+It brings DGX along (`jef-sure/dgx` 0.10.10 or a later 0.10: the pad lies in
+its overlay layer, DGX makes a keyboard's font at the build, and its window
+on the computer gives the mouse): the
 component manager puts both into `managed_components/`, and that is all. It
 needs ESP-IDF 5.3 or later, and was built with 5.5.5, 6.0.3 and 6.1 for the
 ESP32 and the ESP32-P4.
@@ -752,6 +754,90 @@ them again for the new orientation, as it draws its buttons again. A pad and
 a keyboard are made for the display as it stands when they are made: make
 them again.
 
+### On the computer
+
+A program written for a board runs on a PC in a window of DGX (DGX 0.10.10
+or later, see "An effect on the computer" in its README): the window stands
+for the display, the mouse over it for a finger. Pressed on the window with
+the left button, the mouse is a finger on the glass at the pixel under it;
+held, it follows, kept to the glass outside the window; let go, or the
+window left, it is gone. `dgx_di_host.h` makes it a device, as a panel under
+the glass would be: its points are pixels of the glass upright, so the
+pointer lies by flags 0, needs no calibration, and turns the fingers as the
+screen of DGX is turned, as on the board. Only the lines that make the
+display and the device differ:
+
+```c
+#ifdef DGX_HOST_WINDOW
+#include "dgx_di_host.h"
+#include "dgx_host_screen.h"
+static dgx_di_host_touch_t mouse;
+#else
+#include "dgx_di_esp_lcd_touch.h"
+static dgx_di_esp_lcd_touch_t panel;
+#endif
+
+#ifdef DGX_HOST_WINDOW
+    // the 4.3-inch's glass, its QSPI at 40 MHz
+    dgx_screen_t *scr = dgx_host_screen_init(480, 272, 16, &(dgx_host_screen_options_t){.bus_lines = 4});
+    dgx_di_host_touch_init(&mouse, scr);
+    dgx_di_pointer_init(&pointer, &mouse.device, 0, scr);
+#else
+    // the board's display and panel, as in the minimal example
+    dgx_di_pointer_init(&pointer, &panel.device, 0, scr);
+    dgx_di_pointer_calibrate(&pointer, &board_calibration);
+#endif
+```
+
+The mouse is one finger: a way of the pad and a button at once, or a
+gesture of two fingers, cannot be made with it.
+
+There are two builds, as DGX has them:
+
+- **With make**, `host/dgx_di_host.mk` of DGX-DI beside `host/dgx_host.mk`
+  of DGX. `DGX_DI_HOST_SRCS` is the pointer, the touch, the rectangles, the
+  calibration, the pad and the keyboard, and each is a group of its own too;
+  `DGX_DI_HOST_WINDOW_SRCS` is the measure of a board,
+  `dgx_di_calibrate_measure()`, which waits as only the window does. It
+  needs SDL2 and a shell without ESP-IDF activated:
+
+  ```make
+  include path/to/dgx/host/dgx_host.mk
+  include path/to/dgx-di/host/dgx_di_host.mk
+  CPPFLAGS += $(DGX_HOST_CPPFLAGS) $(DGX_HOST_WINDOW_CPPFLAGS) $(DGX_DI_HOST_CPPFLAGS)
+  CFLAGS   += $(DGX_HOST_CFLAGS)
+  LDLIBS   += $(DGX_HOST_LDLIBS) $(DGX_HOST_WINDOW_LDLIBS)
+  check: main/main.c $(DGX_HOST_SRCS) $(DGX_HOST_WINDOW_SRCS) $(DGX_DI_HOST_SRCS) $(DGX_DI_HOST_WINDOW_SRCS)
+  	$(CC) $(CPPFLAGS) $(CFLAGS) $^ -o $@ $(LDLIBS)
+  ```
+
+  Fonts made at the build come from `dgx_fonts.py build` of DGX, from a needs
+  file the CMake build reads too (`dgx_font_needs_file()`).
+- **For the linux target of ESP-IDF**, the project as it is: DGX-DI builds
+  there, all but the GSL3680, a chip on the I2C of a board. The project takes
+  only `main` and what it needs, as DGX asks, and a checkout of DGX-DI in
+  `EXTRA_COMPONENT_DIRS` by its name too (one from the registry comes with
+  `main`'s manifest); `sdkconfig.defaults.linux` gives the main task the
+  stack SDL needs:
+
+  ```cmake
+  if(IDF_TARGET STREQUAL "linux")
+      set(COMPONENTS main)
+  endif()
+  ```
+
+  ```sh
+  echo CONFIG_ESP_MAIN_TASK_STACK_SIZE=16384 > sdkconfig.defaults.linux
+  idf.py --preview set-target linux
+  idf.py build
+  ./build/<project>.elf
+  ```
+
+[examples/touch_check](examples/touch_check) builds both ways, its board
+then the computer, a window with the 4.3-inch's glass and pad:
+`make -C examples/touch_check run`, or `idf.py --preview set-target linux`
+and `idf.py build` in it.
+
 ## Boards it was tried on
 
 Each was calibrated by `dgx_di_calibrate_measure()`, three rounds. Then the
@@ -992,6 +1078,7 @@ a layout of the editor as a blob, a file or a C array.
 | Function | What it does |
 | --- | --- |
 | `void dgx_di_esp_lcd_touch_init(dgx_di_esp_lcd_touch_t *panel, esp_lcd_touch_handle_t handle, int fingers, bool numbered)` | `dgx_di_esp_lcd_touch.h`: a panel of `esp_lcd_touch` as a device, `&panel.device`. |
+| `void dgx_di_host_touch_init(dgx_di_host_touch_t *mouse, const dgx_screen_t *screen)` | `dgx_di_host.h`, on the computer only: the mouse over the window of a screen of `dgx_host_screen_init()` as a device of one finger, `&mouse.device`, its range the glass. |
 | `bool dgx_di_gsl3680_init(dgx_di_gsl3680_t *touch, i2c_master_bus_handle_t bus, int reset_gpio, int int_gpio, int scl_hz, const uint8_t *firmware, size_t size)` | `dgx_di_gsl3680.h`: the chip reset, its firmware written in and started; the device is `&touch.device`. |
 
 `tools/gsl_firmware.py header.h out.fw --range WxH [--array NAME]`: a Silead
@@ -1032,6 +1119,9 @@ On a 32-bit chip:
   each other quickly may change places.
 - Only the GSL3680 has a driver of its own; other panels come through
   `esp_lcd_touch`.
+- On the computer the mouse is one finger: DGX's window gives no second one.
+- Built with make there is no `dgx_di_keyboard_font()`: a keyboard's font is a
+  need of the program's needs file, the letters of its labels written out.
 
 ## Host tests
 
@@ -1068,7 +1158,12 @@ another). They check:
   when led out,
   erase again and again when held, shift, pages, fingers over one another
   and claimed, the band at the top over the field, blobs not of the format
-  refused, the keys drawn and pressed.
+  refused, the keys drawn and pressed;
+- the touch of a window of DGX, where SDL2 is and DGX gives its mouse
+  (0.10.10): SDL's own events pushed, no window opened; the mouse pressed on
+  the window is a finger at the pixel the window shows there, the glass
+  straight and the screen turned by DGX, and the glass turned in the window
+  as the CYD is held; let go, no finger; not on another window.
 
 With Python they make the ready keyboards and pads again of their JSON and
 compare them with `src/dgx_di_keyboard_layouts.c` and
@@ -1093,6 +1188,8 @@ include/dgx_di_pad.h            the game pad
 include/dgx_di_keyboard.h       the keyboard
 include/dgx_di_gsl3680.h        the GSL3680 driver
 include/dgx_di_esp_lcd_touch.h  a panel of esp_lcd_touch as a device (static inline)
+include/dgx_di_host.h           the mouse over a window of DGX on the computer as a device (static inline)
+host/dgx_di_host.mk             DGX-DI built on the computer with make, beside DGX's host/dgx_host.mk
 src/                            their sources; dgx_di_keyboard_layouts.c and dgx_di_pad_layouts.c, the ready layouts as blobs
 tools/gsl_firmware.py           a vendor's GSL firmware as data for the driver
 tools/keyboard_blob.py          a keyboard layout's JSON as the blob the keyboard opens
@@ -1101,7 +1198,7 @@ tools/pad_blob.py               a pad layout's JSON as the blob the pad opens
 tools/pad-editor/               the editor of pad layouts and their pictures (index.html), the ready ones in examples/
 project_include.cmake           dgx_di_keyboard_font() for a program's CMakeLists: the font of a keyboard layout of DGX
 test/host/                      the host tests
-examples/touch_check/           the measure and the try of a board's panel, on the board; a file per board
+examples/touch_check/           the measure and the try of a board's panel, on the board; a file per board; on the computer too
 ```
 
 ## License

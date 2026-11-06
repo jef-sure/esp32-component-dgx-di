@@ -1,0 +1,10 @@
+# The font of the check's text, about 3.4 mm high on any display: read by main/CMakeLists.txt (dgx_font_needs_file)
+# and by the Makefile (dgx_fonts.py build of DGX). The board's pixels and millimetres are given apart, by its file's
+# choice in CMake and on the command line with make. The letters of the check and of the boards' names.
+need check
+size 3.4mm
+postscript DejaVuSans
+text touch_check.c
+text board_jc4827w543.c
+text board_computer.c
+letters 0123456789

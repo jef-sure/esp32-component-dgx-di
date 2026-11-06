@@ -16,7 +16,10 @@ TOOLS := $(if $(shell command -v python3),check-layouts check-pad-layouts) $(if 
 	$(if $(and $(shell command -v python3),$(shell command -v node)),check-templates) \
 	$(if $(and $(shell command -v python3),$(shell command -v node),$(shell command -v cmake)),check-keyboard-font)
 
-all: run-test_pointer run-test_touch run-test_calibration run-test_rects run-test_pad run-test_keyboard $(TOOLS)
+# with SDL2 and a DGX whose window gives its mouse (0.10.10), the touch of a window of DGX on the computer
+HOST_TOUCH := $(if $(and $(shell command -v sdl2-config),$(shell grep -l dgx_host_screen_fingers $(DGX)/host/window/dgx_host_screen.h 2>/dev/null)),run-test_host_touch)
+
+all: run-test_pointer run-test_touch run-test_calibration run-test_rects run-test_pad run-test_keyboard $(HOST_TOUCH) $(TOOLS)
 
 run-%: $(BUILD)/%
 	./$<
@@ -45,6 +48,12 @@ DGX_FLAGS := $(DGX_HOST_CPPFLAGS) -I$(DGX)/src -Wno-format -Wno-sign-compare
 $(BUILD)/test_pad: test_pad.c check.h $(ROOT)/src/dgx_di_pad.c $(ROOT)/src/dgx_di_pad_layouts.c $(ROOT)/src/dgx_di_pointer.c $(ROOT)/include/dgx_di.h $(ROOT)/include/dgx_di_pad.h
 	mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) $(DGX_FLAGS) -o $@ test_pad.c $(ROOT)/src/dgx_di_pad.c $(ROOT)/src/dgx_di_pad_layouts.c $(ROOT)/src/dgx_di_pointer.c $(DGX_SRCS) -lm
+
+# the window of DGX in place of a display, the mouse over it the finger: SDL's own events, no window opened
+$(BUILD)/test_host_touch: test_host_touch.c check.h $(ROOT)/src/dgx_di_pointer.c $(ROOT)/include/dgx_di.h $(ROOT)/include/dgx_di_host.h
+	mkdir -p $(BUILD)
+	$(CC) $(CFLAGS) $(DGX_FLAGS) $(DGX_HOST_WINDOW_CPPFLAGS) -o $@ test_host_touch.c $(ROOT)/src/dgx_di_pointer.c $(DGX_SRCS) \
+		$(DGX_HOST_WINDOW_SRCS) -lm $(DGX_HOST_WINDOW_LDLIBS)
 
 KEYBOARD := $(ROOT)/src/dgx_di_keyboard.c $(ROOT)/src/dgx_di_keyboard_layouts.c $(ROOT)/src/dgx_di_rects.c $(ROOT)/src/dgx_di_pointer.c
 

@@ -11,7 +11,8 @@
  *
  * A board without a calibration in its file is measured first; then, and on a board with one, a menu of the three, the
  * results so far above it and in the log (lines with RESULT). The board, its display and its panel come from its file
- * (board.h).
+ * (board.h). A gesture or a task of the pad for more fingers than the panel sees at once is left out, and said so: an
+ * XPT2046 and the mouse of the computer (board_computer.c) see one.
  */
 #include <math.h>
 #include <stdarg.h>
@@ -256,6 +257,17 @@ static const gesture_t gestures[] = {
 };
 #define GESTURES (int)(sizeof gestures / sizeof gestures[0])
 
+/* the fingers the panel sees at once (an XPT2046, the mouse of the computer: one), and those a gesture needs */
+static int sees(void)
+{
+    return dev->fingers ? dev->fingers : 1;
+}
+
+static int gesture_fingers(const gesture_t *g)
+{
+    return g->kind == G_TWO || g->kind == G_HOLD_MOVE ? 2 : 1;
+}
+
 static int gx(int v)
 {
     return v * (W - 1) / 1000;
@@ -270,11 +282,11 @@ static int gy(int v)
 #define HM_X0 (W / 2 - 10)
 #define HM_X1 (HM_X0 + (int)(25 * px_mm))
 
-static void gesture_draw(const gesture_t *g, int try)
+static void gesture_draw(const gesture_t *g, int number, int of, int try)
 {
     clear();
     char head[48];
-    snprintf(head, sizeof head, "Жест %d из %d%s", (int)(g - gestures) + 1, GESTURES, try ? ", ещё раз" : "");
+    snprintf(head, sizeof head, "Жест %d из %d%s", number, of, try ? ", ещё раз" : "");
     const int ty = gy(g->ty) + 18;
     text(10, ty, YELLOW, "%s", head);
     para(10, ty + LINE, WHITE, "%s", g->say);
@@ -430,20 +442,29 @@ static bool hold_and_move(const gesture_t *g, const char **what)
     return false;
 }
 
-static int  gestures_passed;
+static int  gestures_passed, gestures_tried; /* those the panel's fingers allow */
 static bool gestures_done;
 
 static void gestures_check(void)
 {
+    gestures_tried = 0;
+    for (int k = 0; k < GESTURES; ++k) gestures_tried += gesture_fingers(&gestures[k]) <= sees();
     clear();
-    text(10, 26, YELLOW, "Жесты: %d штук.", GESTURES);
-    para(10, 26 + LINE, WHITE, "Что сделать, будет написано и нарисовано на экране. На каждый жест 3 попытки.");
+    text(10, 26, YELLOW, "Жесты: %d штук.", gestures_tried);
+    int y = para(10, 26 + LINE, WHITE, "Что сделать, будет написано и нарисовано на экране. На каждый жест 3 попытки.");
+    if (gestures_tried < GESTURES)
+        para(10, y, GREY, "Жесты для нескольких пальцев пропущены (%d): панель видит пальцев: %d.", GESTURES - gestures_tried, sees());
     go_on("Начать");
     gestures_passed = 0;
-    for (int k = 0; k < GESTURES; ++k) {
+    for (int k = 0, number = 0; k < GESTURES; ++k) {
         const gesture_t *g = &gestures[k];
+        if (gesture_fingers(g) > sees()) {
+            ESP_LOGI(TAG, "gesture %d (%s): left out, it needs %d fingers and the panel sees %d", k + 1, g->name, gesture_fingers(g), sees());
+            continue;
+        }
+        ++number;
         for (int try = 0; try < TRIES; ++try) {
-            gesture_draw(g, try);
+            gesture_draw(g, number, gestures_tried, try);
             const char *what = "";
             const bool  ok   = g->kind == G_TWO ? two_fingers(g, &what) : g->kind == G_HOLD_MOVE ? hold_and_move(g, &what) : one_finger(g, &what);
             ESP_LOGI(TAG, "gesture %d (%s), try %d: %s, told: %s", k + 1, g->name, try + 1, ok ? "ok" : "no", what);
@@ -455,7 +476,7 @@ static void gestures_check(void)
         }
     }
     gestures_done = true;
-    ESP_LOGI(TAG, "RESULT gestures: %d of %d", gestures_passed, GESTURES);
+    ESP_LOGI(TAG, "RESULT gestures: %d of %d", gestures_passed, gestures_tried);
 }
 
 /* ---------------------------------------------------------------- the pad */
@@ -463,20 +484,21 @@ static void gestures_check(void)
 enum { CROSS = DGX_DI_PAD_UP | DGX_DI_PAD_DOWN | DGX_DI_PAD_LEFT | DGX_DI_PAD_RIGHT, ABXY = DGX_DI_PAD_A | DGX_DI_PAD_B | DGX_DI_PAD_X | DGX_DI_PAD_Y };
 
 typedef struct {
-    uint32_t    want; /* held together, nothing else; 0: the circle */
+    uint32_t    want;    /* held together, nothing else; 0: the circle */
+    int         fingers; /* it needs so many at once */
     const char *say;
 } pad_task_t;
 
 static const pad_task_t pad_tasks[] = {
-    {ABXY, "Нажмите и держите вместе A, B, X и Y."},
-    {DGX_DI_PAD_UP, "Нажмите на кресте вверх и держите."},
-    {DGX_DI_PAD_DOWN, "Нажмите на кресте вниз и держите."},
-    {DGX_DI_PAD_LEFT, "Нажмите на кресте влево и держите."},
-    {DGX_DI_PAD_DOWN | DGX_DI_PAD_LEFT, "Нажмите на кресте вниз-влево, в угол."},
-    {DGX_DI_PAD_RIGHT | DGX_DI_PAD_A, "Держите на кресте вправо и кнопку A."},
-    {DGX_DI_PAD_START, "Нажмите START (правая маленькая)."},
-    {DGX_DI_PAD_BACK, "Нажмите BACK (левая маленькая)."},
-    {0, "Обведите крест пальцем по кругу, не отрывая."},
+    {ABXY, 4, "Нажмите и держите вместе A, B, X и Y."},
+    {DGX_DI_PAD_UP, 1, "Нажмите на кресте вверх и держите."},
+    {DGX_DI_PAD_DOWN, 1, "Нажмите на кресте вниз и держите."},
+    {DGX_DI_PAD_LEFT, 1, "Нажмите на кресте влево и держите."},
+    {DGX_DI_PAD_DOWN | DGX_DI_PAD_LEFT, 1, "Нажмите на кресте вниз-влево, в угол."},
+    {DGX_DI_PAD_RIGHT | DGX_DI_PAD_A, 2, "Держите на кресте вправо и кнопку A."},
+    {DGX_DI_PAD_START, 1, "Нажмите START (правая маленькая)."},
+    {DGX_DI_PAD_BACK, 1, "Нажмите BACK (левая маленькая)."},
+    {0, 1, "Обведите крест пальцем по кругу, не отрывая."},
 };
 #define PAD_TASKS (int)(sizeof pad_tasks / sizeof pad_tasks[0])
 
@@ -493,14 +515,18 @@ static void held_names(uint32_t b, char *out, size_t size)
     if (!out[0]) snprintf(out, size, "ничего");
 }
 
-static int  pad_passed;
+static int  pad_passed, pad_tried; /* those the panel's fingers allow */
 static bool pad_failed, pad_done;
 
 static void pad_check(void)
 {
+    pad_tried = 0;
+    for (int k = 0; k < PAD_TASKS; ++k) pad_tried += pad_tasks[k].fingers <= sees();
     clear();
-    text(10, 26, YELLOW, "Пад: %d заданий.", PAD_TASKS);
-    para(10, 26 + LINE, WHITE, "Задание будет написано вверху. Получилось - сразу следующее. Не выходит - кнопка «Пропустить» справа вверху.");
+    text(10, 26, YELLOW, "Пад: %d заданий.", pad_tried);
+    const int below = para(10, 26 + LINE, WHITE, "Задание будет написано вверху. Получилось - сразу следующее. Не выходит - кнопка «Пропустить» справа вверху.");
+    if (pad_tried < PAD_TASKS)
+        para(10, below, GREY, "Задания для нескольких пальцев пропущены (%d): панель видит пальцев: %d.", PAD_TASKS - pad_tried, sees());
     go_on("Начать");
     dgx_screen_t *pic = dgx_vscreen_init(W, H, scr->color_bits, scr->rgb_order);
     dgx_di_pad_t  pad;
@@ -518,10 +544,15 @@ static void pad_check(void)
     dgx_di_rects_t rects;
     dgx_di_rects_init(&rects, &skip.r, 1);
     int ball_x = W / 2, ball_y = H / 2, vx = 3, vy = 2;
-    for (int k = 0; k < PAD_TASKS; ++k) {
+    for (int k = 0, number = 0; k < PAD_TASKS; ++k) {
         const pad_task_t *task = &pad_tasks[k];
         uint32_t          since = 0, done = 0, ways = 0;
         bool              skipped = false;
+        if (task->fingers > sees()) {
+            ESP_LOGI(TAG, "pad task %d: left out, it needs %d fingers and the panel sees %d", k + 1, task->fingers, sees());
+            continue;
+        }
+        ++number;
         for (;; wait_ms(LOOK_MS)) {
             /* the picture moves under the pad: a ball across stripes */
             ball_x += vx, ball_y += vy;
@@ -532,7 +563,7 @@ static void pad_check(void)
             /* the task, what is held, the skip */
             char held[64];
             held_names(pad.buttons, held, sizeof held);
-            text_on(pic, 10, 26, YELLOW, "Задание %d из %d", k + 1, PAD_TASKS);
+            text_on(pic, 10, 26, YELLOW, "Задание %d из %d", number, pad_tried);
             const int y = para_on(pic, 10, 26 + LINE + 4, W - 20, WHITE, "%s", task->say);
             text_on(pic, 10, y, done ? GREEN : GREY, done ? "Вышло!" : "Нажато: %s", held);
             button_draw(pic, &skip);
@@ -570,7 +601,7 @@ static void pad_check(void)
         while (look() || pad.buttons) dgx_di_pad_take(&pad, &pointer), wait_ms(LOOK_MS);
     }
     pad_done = true;
-    ESP_LOGI(TAG, "RESULT pad: %d of %d", pad_passed, PAD_TASKS);
+    ESP_LOGI(TAG, "RESULT pad: %d of %d", pad_passed, pad_tried);
     dgx_di_pad_free(&pad, scr);
     dgx_screen_destroy(&pic);
 }
@@ -612,11 +643,11 @@ void app_main(void)
         } else {
             y = para(10, y, RED, "Калибровки нет.");
         }
-        if (gestures_done) y = para(10, y, WHITE, "Жесты: %d из %d.", gestures_passed, GESTURES);
+        if (gestures_done) y = para(10, y, WHITE, "Жесты: %d из %d.", gestures_passed, gestures_tried);
         else y = para(10, y, GREY, "Жесты не проверялись.");
-        if (pad_done) y = para(10, y, WHITE, "Пад: %d из %d.", pad_passed, PAD_TASKS);
+        if (pad_done) y = para(10, y, WHITE, "Пад: %d из %d.", pad_passed, pad_tried);
         else y = para(10, y, GREY, pad_failed ? "Пад не сделан: не хватило памяти." : "Пад не проверялся.");
-        ESP_LOGI(TAG, "RESULT gestures %d of %d, pad %d of %d", gestures_passed, gestures_done ? GESTURES : 0, pad_passed, pad_done ? PAD_TASKS : 0);
+        ESP_LOGI(TAG, "RESULT gestures %d of %d, pad %d of %d", gestures_passed, gestures_done ? gestures_tried : 0, pad_passed, pad_done ? pad_tried : 0);
         /* the menu, at the bottom: the pointer is calibrated by now, or the board has no calibration at all */
         const int bw = (W - 40) / 3;
         button_t  menu[3];

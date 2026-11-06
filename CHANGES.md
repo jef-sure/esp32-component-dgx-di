@@ -1,5 +1,38 @@
 # Changes
 
+## 0.1.5 - 2026-11-06
+
+On the computer, in the window of DGX, both ways DGX builds there: with make
+and for the linux target of ESP-IDF. On DGX 0.10.10, whose window gives its
+mouse. Checked by the host tests against DGX 0.10.10, and examples/touch_check
+built with make and by ESP-IDF 6.1 for the linux target and the ESP32-S3,
+with DGX 0.10.10 of the registry; on the computer it opened its menu, the
+same picture by both builds. Tried by a hand with the mouse: the calibration
+found flags 0, 1.2 px off without it and 0.7 with it (the hand's aim);
+gestures 9 of 9, the pad 7 of 7, those of more fingers left out.
+
+- **`dgx_di_host.h`:** the mouse over a window of DGX (`dgx_host_screen_init()`)
+  as a device of one finger, `dgx_di_host_touch_init()`. Its points are pixels
+  of the glass upright, as a panel under it gives them: the pointer lies by
+  flags 0, needs no calibration and turns them with the screen. Static inline,
+  for a program built for the computer only.
+- **`host/dgx_di_host.mk`:** DGX-DI's sources for a make build, beside DGX's
+  `host/dgx_host.mk`, by groups; the measure of a board in a group of the
+  window.
+- **The linux target of ESP-IDF:** DGX-DI builds there, all but the GSL3680
+  and its I2C.
+- **DGX 0.10.10** (`jef-sure/dgx` ^0.10.10): the mouse of its window.
+- **examples/touch_check:** a board of the computer, `board_computer.c`: a
+  window with the JC4827W543's glass and pad, the mouse the finger; built by
+  its Makefile with make, or by ESP-IDF for the linux target. A gesture or a
+  task of the pad for more fingers than the panel sees is left out and said
+  so (the mouse and an XPT2046 see one). The font of its text has the letters
+  of the boards' names too: the J of the JC4827W543 was missing. Its font
+  need is a needs file, `main/fonts.needs`, read by both builds.
+- **Host tests:** `test_host_touch`, where SDL2 is: the mouse on a window of
+  DGX as a finger of the display, the glass straight and turned as the CYD is
+  held, the screen turned by DGX.
+
 ## 0.1.4 - 2026-10-30
 
 A pointer a header can name, a crash fixed, an option of a tool gone, the numbers of the 4.3-inch

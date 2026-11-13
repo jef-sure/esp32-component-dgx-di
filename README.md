@@ -74,17 +74,17 @@ DGX-DI is an ESP-IDF component, published in the ESP Component Registry as
 `jef-sure/dgx-di`. Add it to a project:
 
 ```sh
-idf.py add-dependency "jef-sure/dgx-di^0.1.5"
+idf.py add-dependency "jef-sure/dgx-di^0.1.6"
 ```
 
 or put it into `main/idf_component.yml` yourself:
 
 ```yaml
 dependencies:
-  jef-sure/dgx-di: "^0.1.5"
+  jef-sure/dgx-di: "^0.1.6"
 ```
 
-It brings DGX along (`jef-sure/dgx` 0.10.10 or a later 0.10: the pad lies in
+It brings DGX along (`jef-sure/dgx` 0.11.0 or a later 0.11: the pad lies in
 its overlay layer, DGX makes a keyboard's font at the build, and its window
 on the computer gives the mouse): the
 component manager puts both into `managed_components/`, and that is all. It

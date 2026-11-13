@@ -1,5 +1,22 @@
 # Changes
 
+## 0.1.6 - 2026-11-14
+
+On DGX 0.11.0, to stay in step with it. DGX-DI calls none of what 0.11
+changed, the constructors of the displays with a backlight and reading a
+display back through its window, and its code is the same. Checked by the
+host tests against DGX 0.11.0; by a program of every part of DGX-DI built
+with ESP-IDF 5.5.5, 6.0.3 and 6.1 for the ESP32 and the ESP32-P4 and with
+5.5.5 and 6.1 for the linux target, and run there; and by
+examples/touch_check built with make, with ESP-IDF 6.1 for the linux target
+and with 5.5.5 and 6.1 for the ESP32-S3, all with no warning, the ESP-IDF
+builds with DGX 0.11.0 of the registry. Not run on a board.
+
+- **`jef-sure/dgx` ^0.11.0**, and examples/touch_check with it.
+- **The package** is what its manifest lists and nothing else, as DGX's is
+  (`exclude: "**/*"`, then `include`): a new file in the directory, an
+  editor's index say, stays out. `.gitignore` is no longer in it.
+
 ## 0.1.5 - 2026-11-06
 
 On the computer, in the window of DGX, both ways DGX builds there: with make

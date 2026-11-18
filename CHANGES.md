@@ -1,5 +1,33 @@
 # Changes
 
+## 0.1.7 - 2026-11-18
+
+A mirror of the display: the keyboard and the pad drawn where the display
+has them on another screen, a strip of a picture composed again for a
+display that cannot be read. Still on DGX 0.11.0. Checked by the host tests
+against DGX 0.11.0 and 0.11.5, and by a program of every part of DGX-DI, the
+mirror too, built with ESP-IDF 5.5.5, 6.0.3 and 6.1 for the ESP32 and the
+ESP32-P4 and with 5.5.5 and 6.1 for the linux target, and run there, with
+DGX 0.11.5 of the registry, all with no warning. Not run on a board.
+
+- **`dgx_di_keyboard_draw_to(kb, scr, ox, oy)`:** the keyboard as the display
+  has it now, its page, its shift and the keys held pressed, drawn on another
+  screen of 16 bits, the display's pixel (ox, oy) at its (0, 0), cut by it.
+  Only the rows of the band and the keys that meet the screen are drawn.
+  Nothing of the keyboard changes: it may be called between two takes.
+- **`dgx_di_pad_draw_to(pad, scr, ox, oy)`:** the pad as the display shows it
+  now, mixed over what the screen holds by the alpha it was shown with, in
+  the 32 steps DGX mixes the layer in: the same pixels as the display's.
+  `dgx_di_pad_t` keeps that alpha in a new member at its end, `alpha`.
+- **README:** a recipe, "A mirror of the display"; the version it tells is
+  this one again (it said 0.1.2).
+- **Host tests:** the keyboard drawn in strips of 8 rows and in tiles the same
+  as drawn whole and as the display, pixel for pixel, its labels in a font of
+  DGX, with shift, on both pages, a key held; the pad mixed into strips the
+  same as the display shows it through its layer, of every ready layout, of
+  several alphas, an item held. They build again with DGX 0.11.1 and later,
+  whose screen's header takes the stubs of ESP-IDF.
+
 ## 0.1.6 - 2026-11-14
 
 On DGX 0.11.0, to stay in step with it. DGX-DI calls none of what 0.11

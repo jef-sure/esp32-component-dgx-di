@@ -5,7 +5,8 @@
  * an item pressed drawn so, the others not; laid over the display and taken away. Of blobs (the ready layouts of
  * tools/pad-editor/examples, made by tools/pad_blob.py): the classic one as the C one, layer and all; pictures of their
  * own — a button's normal and pressed, a sign, a cross's arm held over it, a stick's knob where the finger has it and
- * the well under it; blobs not of the format refused. On a display of 1280x800 over 217x136 mm, the 10" Guition's.
+ * the well under it; blobs not of the format refused. The mirror of it composed in strips, the same as the display
+ * shows it through its layer. On a display of 1280x800 over 217x136 mm, the 10" Guition's.
  */
 #include <math.h>
 #include <stdio.h>
@@ -15,6 +16,7 @@
 #include "check.h"
 #include "dgx_di.h"
 #include "dgx_di_pad.h"
+#include "dgx_draw.h"
 #include "dgx_overlay.h"
 #include "drivers/vscreen.h"
 
@@ -114,6 +116,45 @@ static uint16_t softer_of(uint16_t c)
     return (uint16_t)(((3 * r + 31) / 4) << 11 | ((3 * g + 63) / 4) << 5 | (3 * b + 31) / 4);
 }
 enum { GREY = 0x5ACB, RIM = 0xE71C }; /* an item of no color of its own; the rims and the cross's chevrons at rest */
+
+/* a picture of the display's size, the pixels of many colors */
+static dgx_screen_t *picture_of_many(void)
+{
+    dgx_screen_t *s = dgx_vscreen_init(W, H, 16, DgxScreenRGB);
+    uint8_t      *a = ((dgx_vscreen_t *)s)->v_array;
+    for (size_t i = 0; i < (size_t)W * H * 2; ++i) a[i] = (uint8_t)(i * 37u + (i >> 11) * 101u);
+    return s;
+}
+
+/*
+ * The mirror of a pad as shown now: the picture put on the display through its layer; the same picture put into tiles
+ * of tw x th over the display (the last ones past its edge), the pad mixed into each by dgx_di_pad_draw_to(): the same,
+ * pixel for pixel, where the tiles meet the display; nothing of the pad changed. How many pixels differ; seen: how many
+ * the pad changed on the display.
+ */
+static int mirror_differs(const dgx_di_pad_t *q, dgx_screen_t *display, dgx_screen_t *pic, int tw, int th, int *seen)
+{
+    static dgx_di_pad_t before;
+    memcpy(&before, q, sizeof *q);
+    dgx_vscreen_to_screen(display, 0, 0, pic, 0);
+    dgx_screen_t *tile   = dgx_vscreen_init(tw, th, 16, DgxScreenRGB);
+    int           differ = 0;
+    *seen                = 0;
+    for (int oy = 0; oy < H; oy += th)
+        for (int ox = 0; ox < W; ox += tw) {
+            dgx_vscreen_region_to_screen(tile, 0, 0, pic, ox, oy, tw, th, 0);
+            dgx_di_pad_draw_to(q, tile, ox, oy);
+            for (int y = 0; y < th && oy + y < H; ++y)
+                for (int x = 0; x < tw && ox + x < W; ++x) {
+                    const uint32_t shown_there = display->get_pixel(display, ox + x, oy + y);
+                    differ += tile->get_pixel(tile, x, y) != shown_there;
+                    *seen += pic->get_pixel(pic, ox + x, oy + y) != shown_there;
+                }
+        }
+    CHECK(!memcmp(&before, q, sizeof *q));
+    dgx_screen_destroy(&tile);
+    return differ;
+}
 
 int main(void)
 {
@@ -441,6 +482,58 @@ int main(void)
             if (dgx_di_pad_open(&q, display, MM_W, MM_H, bb, n)) ++opened, dgx_di_pad_free(&q, NULL);
         }
         CHECK(opened == 0);
+    }
+
+    /* the mirror (dgx_di_pad_draw_to): a picture composed in strips of 8 rows across with the pad mixed in, the same as
+       the display shows it through its layer, of every ready layout, its first item held off its middle (a cross's arm, a
+       stick's knob) and its second pressed; of several alphas and in tiles of 333 x 7; hidden, or onto a screen of 8 bits:
+       nothing */
+    {
+        dgx_screen_t *pic = picture_of_many();
+        const struct {
+            const uint8_t *blob;
+            size_t         size;
+        } layouts[] = {{NULL, 0},
+                       {dgx_di_pad_layout_classic, dgx_di_pad_layout_classic_size},
+                       {dgx_di_pad_layout_flat, dgx_di_pad_layout_flat_size},
+                       {dgx_di_pad_layout_twin, dgx_di_pad_layout_twin_size}};
+        for (size_t l = 0; l < sizeof layouts / sizeof *layouts; ++l) {
+            dgx_di_pad_t q;
+            CHECK(layouts[l].blob ? dgx_di_pad_open(&q, display, MM_W, MM_H, layouts[l].blob, layouts[l].size)
+                                  : dgx_di_pad_init(&q, display, MM_W, MM_H, dgx_di_pad_classic, DGX_DI_PAD_CLASSIC));
+            const dgx_di_pad_place_t *first = &q.places[0], *second = &q.places[1];
+            const int down[2][3] = {{1, first->x + first->r / 2, first->y}, {2, second->x, second->y}};
+            const int moved[2][3] = {{1, first->x + first->r / 2, first->y + first->r / 3}, {2, second->x, second->y}};
+            look(&q, 2, down), look(&q, 2, moved);
+            CHECK(q.places[0].drawn && q.places[1].drawn);
+            int seen;
+            CHECK(dgx_di_pad_show(&q, display, 160) && q.alpha == 160);
+            CHECK(mirror_differs(&q, display, pic, W, 8, &seen) == 0 && seen > 1000);
+            if (!l) {
+                const uint8_t alphas[] = {255, 0, 1, 77, 200};
+                for (size_t a = 0; a < sizeof alphas; ++a) {
+                    CHECK(dgx_di_pad_show(&q, display, alphas[a]));
+                    CHECK(mirror_differs(&q, display, pic, W, 8, &seen) == 0 && (alphas[a] < 4 ? seen == 0 : seen > 1000));
+                }
+                CHECK(mirror_differs(&q, display, pic, 333, 7, &seen) == 0 && seen > 1000);
+            }
+            none(&q);
+            CHECK(mirror_differs(&q, display, pic, W, 8, &seen) == 0 && seen > 1000); /* let go */
+            /* hidden, a screen of 8 bits: nothing drawn */
+            dgx_screen_t *strip = dgx_vscreen_init(W, 8, 16, DgxScreenRGB), *eight = dgx_vscreen_init(W, 8, 8, DgxScreenRGB);
+            dgx_fill_rectangle(eight, 0, 0, W, 8, 7);
+            dgx_di_pad_draw_to(&q, eight, 0, first->y);
+            dgx_di_pad_hide(&q, display);
+            dgx_fill_rectangle(strip, 0, 0, W, 8, 0x1234);
+            dgx_di_pad_draw_to(&q, strip, 0, first->y);
+            int changed = 0;
+            for (int x = 0; x < W; ++x)
+                for (int y = 0; y < 8; ++y) changed += strip->get_pixel(strip, x, y) != 0x1234 || eight->get_pixel(eight, x, y) != 7;
+            CHECK(changed == 0);
+            dgx_screen_destroy(&strip), dgx_screen_destroy(&eight);
+            dgx_di_pad_free(&q, display);
+        }
+        dgx_screen_destroy(&pic);
     }
 
     /* laid over the display and taken away, another pad not shown neither hiding nor freeing it; too many items: none */

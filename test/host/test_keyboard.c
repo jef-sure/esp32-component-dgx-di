@@ -3,7 +3,8 @@
  * 154x86 mm, worked out by hand); a key typed when let go inside it, however long held, nothing when led out; erase
  * again and again when held; shift for one character; pages; several fingers over one another; the fingers on the band claimed, the others
  * not; the band at the top when the field is under it; the queue of what is typed; blobs not of the format refused;
- * the band drawn, a key pressed drawn so and its neighbours not, the signs drawn without a font.
+ * the band drawn, a key pressed drawn so and its neighbours not, the signs drawn without a font; the mirror of it drawn
+ * on other screens, whole and in strips, the same as the display.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,6 +13,8 @@
 #include "check.h"
 #include "dgx_di.h"
 #include "dgx_di_keyboard.h"
+#include "dgx_draw.h"
+#include "dgx_font.h"
 #include "drivers/vscreen.h"
 
 typedef struct {
@@ -94,6 +97,48 @@ static const char *got(void)
 static unsigned pixel(dgx_screen_t *s, int x, int y)
 {
     return (unsigned)s->get_pixel(s, x, y);
+}
+
+dgx_font_t *DejaVuSansBook32(void);
+
+enum { UNDER = 0x1234 }; /* what a screen of the mirror holds before the keyboard is drawn on it */
+
+static void fill(dgx_screen_t *s, uint16_t c)
+{
+    dgx_fill_rectangle(s, 0, 0, s->width, s->height, c);
+}
+
+/*
+ * The mirror of the keyboard as it is now: drawn whole on a screen of the display's size, and in tiles of tw x th over
+ * the display (the last ones past its edge, cut by their screens), each tile copied into another such screen: the two
+ * the same pixel for pixel, and the band the same as the display has it; nothing drawn outside the band, nothing of the
+ * keyboard changed. How many pixels differ.
+ */
+static int mirror_differs(dgx_screen_t *display, int tw, int th)
+{
+    static dgx_di_keyboard_t before;
+    memcpy(&before, &kb, sizeof kb);
+    dgx_screen_t *whole = dgx_vscreen_init(W, H, 16, DgxScreenRGB), *tiles = dgx_vscreen_init(W, H, 16, DgxScreenRGB);
+    dgx_screen_t *tile = dgx_vscreen_init(tw, th, 16, DgxScreenRGB);
+    fill(whole, UNDER), fill(tiles, 0);
+    dgx_di_keyboard_draw_to(&kb, whole, 0, 0);
+    for (int oy = 0; oy < H; oy += th)
+        for (int ox = 0; ox < W; ox += tw) {
+            fill(tile, UNDER);
+            dgx_di_keyboard_draw_to(&kb, tile, ox, oy);
+            for (int y = 0; y < th && oy + y < H; ++y)
+                for (int x = 0; x < tw && ox + x < W; ++x) tiles->set_pixel(tiles, ox + x, oy + y, tile->get_pixel(tile, x, y));
+        }
+    int differ = 0;
+    for (int y = 0; y < H; ++y)
+        for (int x = 0; x < W; ++x) {
+            const bool     in   = x >= kb.x && x < kb.x + kb.w && y >= kb.y && y < kb.y + kb.h;
+            const unsigned seen = pixel(whole, x, y);
+            if (seen != pixel(tiles, x, y) || seen != (in ? pixel(display, x, y) : UNDER)) ++differ;
+        }
+    CHECK(!memcmp(&before, &kb, sizeof kb));
+    dgx_screen_destroy(&whole), dgx_screen_destroy(&tiles), dgx_screen_destroy(&tile);
+    return differ;
 }
 
 int main(void)
@@ -225,6 +270,38 @@ int main(void)
     CHECK(kb.page == 0 && kb.count == 33);
     tap(0);
     CHECK(!strcmp(got(), "q"));
+
+    /* the mirror (dgx_di_keyboard_draw_to): as the display has it, in strips of 8 rows across and in tiles of 333 x 7, a
+       label cut by them; with shift and a key held pressed, then on the other page with another held; the code's signs */
+    {
+        fill(display, 0);
+        CHECK(dgx_di_keyboard_open(&kb, display, MM_W, MM_H, dgx_di_keyboard_latin, dgx_di_keyboard_latin_size, DejaVuSansBook32(), NULL));
+        tap(19), one(mid_x(3), mid_y(3)); /* shift, R held */
+        CHECK(kb.shift && kb.drawn[3] && !kb.drawn[2] && pixel(display, kb.keys[3].x + 3, mid_y(3)) == pressed);
+        CHECK(mirror_differs(display, W, 8) == 0);
+        CHECK(mirror_differs(display, 333, 7) == 0);
+        none(), tap(28), one(mid_x(12), mid_y(12)); /* the other page, a key of its second row held */
+        CHECK(kb.page == 1 && kb.drawn[12]);
+        CHECK(mirror_differs(display, W, 8) == 0);
+        CHECK(mirror_differs(display, 333, 7) == 0);
+        none();
+        fill(display, 0);
+        CHECK(dgx_di_keyboard_open(&kb, display, MM_W, MM_H, dgx_di_keyboard_digits, dgx_di_keyboard_digits_size, NULL, NULL));
+        one(mid_x(9), mid_y(9)); /* erase held */
+        CHECK(mirror_differs(display, W, 8) == 0);
+        none();
+        /* a screen off the band: untouched; another of 8 bits, the keyboard closed: nothing drawn */
+        dgx_screen_t *off = dgx_vscreen_init(64, 8, 16, DgxScreenRGB), *eight = dgx_vscreen_init(64, 8, 8, DgxScreenRGB);
+        fill(off, UNDER), dgx_fill_rectangle(eight, 0, 0, 64, 8, 7);
+        dgx_di_keyboard_draw_to(&kb, off, 0, 0), dgx_di_keyboard_draw_to(&kb, eight, kb.x, kb.y);
+        dgx_di_keyboard_close(&kb);
+        dgx_di_keyboard_draw_to(&kb, off, kb.x, kb.y);
+        int changed = 0;
+        for (int y = 0; y < 8; ++y)
+            for (int x = 0; x < 64; ++x) changed += pixel(off, x, y) != UNDER || pixel(eight, x, y) != 7;
+        CHECK(changed == 0);
+        dgx_screen_destroy(&off), dgx_screen_destroy(&eight);
+    }
 
     /* blobs not of the format: refused, nothing open */
     {

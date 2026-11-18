@@ -18,9 +18,10 @@ extern "C" {
  *
  * It draws straight on the display, no layer: while it is open, the band is its own (kb.x, y, w, h) and the program
  * draws nothing there; dgx_di_keyboard_draw() draws it all again after the program has drawn over it. Each drawing is
- * one batch of DGX. Its keys are rectangles of dgx_di.h: a finger is the key's it went down on, the key types when it is
- * let go inside it, however long held (led out and let go: nothing, as on a phone), a key pressed is drawn so; several
- * fingers type over one another. A finger that goes down on the band is the keyboard's (dgx_di_pointer_claim): never
+ * one batch of DGX. A mirror of the display, composed elsewhere, takes it by dgx_di_keyboard_draw_to(). Its keys are
+ * rectangles of dgx_di.h: a finger is the key's it went down on, the key types when it is let go inside it, however
+ * long held (led out and let go: nothing, as on a phone), a key pressed is drawn so; several fingers type over one
+ * another. A finger that goes down on the band is the keyboard's (dgx_di_pointer_claim): never
  * the program's first finger nor a rectangle of its own. Erase held types again and again: from a long press on, every
  * 100 ms, and nothing more when let go.
  *
@@ -93,6 +94,16 @@ void dgx_di_keyboard_close(dgx_di_keyboard_t *kb);
 
 /* All of it drawn again (the program drew over its band). */
 void dgx_di_keyboard_draw(dgx_di_keyboard_t *kb);
+
+/*
+ * The keyboard as the display has it now drawn on another screen, the pixel (ox, oy) of the display at that screen's
+ * (0, 0), cut by it: a mirror of a display that cannot be read, composed in strips (a screenshot, a view of it
+ * elsewhere), has the keyboard where the display has it. Its page, its shift, the keys pressed as last drawn; the
+ * band opaque, nothing drawn outside it. Only the rows of the band and the keys that meet the screen are drawn, in one
+ * batch of it: a strip of 8 rows costs those rows and the keys across them. Nothing of the keyboard changes, so it may
+ * be called at any time between two takes. Closed, or a screen not of 16 bits: nothing drawn.
+ */
+void dgx_di_keyboard_draw_to(const dgx_di_keyboard_t *kb, dgx_screen_t *scr, int ox, int oy);
 
 /*
  * The fingers of the pointer as last read taken at now_ms: those gone down on the band claimed, the keys pressed drawn

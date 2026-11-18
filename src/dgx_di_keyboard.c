@@ -227,25 +227,56 @@ static void sign(dgx_screen_t *s, uint32_t code, int cx, int cy, int size, uint1
     }
 }
 
-static void draw_key(dgx_di_keyboard_t *kb, int k, bool pressed, int baseline)
+/*
+ * Where the keyboard is drawn: a screen, the pixel (ox, oy) of the display at its (0, 0), and the part of the display it
+ * holds, both ends included. The display itself is one at (0, 0); a mirror's strip another.
+ */
+typedef struct {
+    dgx_screen_t *s;
+    int           ox, oy;
+    int           left, top, right, bottom;
+} canvas_t;
+
+static canvas_t canvas_of(dgx_screen_t *s, int ox, int oy)
 {
-    const layout_key_t         key = key_of(kb, kb->page, k);
+    return (canvas_t){.s = s, .ox = ox, .oy = oy, .left = ox, .top = oy, .right = ox + s->width - 1, .bottom = oy + s->height - 1};
+}
+
+/* a rectangle of the display, both ends included, meets the part the canvas holds */
+static bool meets(const canvas_t *c, int left, int top, int right, int bottom)
+{
+    return left <= c->right && c->left <= right && top <= c->bottom && c->top <= bottom;
+}
+
+/*
+ * Key k drawn on the canvas, pressed or not, its label's baseline that far from its top: only when it meets the canvas,
+ * the label only when its box does (widened by its height each way: a letter may reach past the advances).
+ */
+static void draw_key(const dgx_di_keyboard_t *kb, const canvas_t *c, int k, bool pressed, int baseline)
+{
     const dgx_di_rect_t *r   = &kb->keys[k];
+    const layout_key_t   key = key_of(kb, kb->page, k);
+    char                 text[5];
+    const char          *label = key.label;
+    int16_t              top = 0, height = 0;
+    int                  width = 0;
+    if (!label && !special(key.code) && key.code != ' ') utf8(kb->shift && key.upper ? key.upper : key.code, text), label = text;
+    const bool lettered = label && kb->font;
+    if (lettered) width = dgx_font_string_bounds(label, kb->font, &top, &height);
+    const int lx = r->x + r->w / 2 - width / 2, ly = r->y + baseline; /* where the label starts, its baseline */
+    const bool key_in = meets(c, r->x, r->y, r->x + r->w - 1, r->y + r->h - 1);
+    const bool label_in = lettered && meets(c, lx - height, ly + top - height, lx + width + height, ly + top + 2 * height);
+    if (!key_in && !label_in) return;
     /* shift on: as a key of characters, the way back */
     const bool     plain = !special(key.code) || (key.code == DGX_DI_KEY_SHIFT && kb->shift);
     const uint16_t back  = kb->color[pressed ? DGX_DI_KEYBOARD_PRESSED : plain ? DGX_DI_KEYBOARD_KEY : DGX_DI_KEYBOARD_SPECIAL];
-    rounded(kb->display, r->x, r->y, r->w, r->h, kb->radius, back);
-    char        text[5];
-    const char *label = key.label;
-    if (!label && !special(key.code) && key.code != ' ') utf8(kb->shift && key.upper ? key.upper : key.code, text), label = text;
-    if (label && kb->font) {
-        int16_t   top, height;
-        const int width = dgx_font_string_bounds(label, kb->font, &top, &height);
-        dgx_font_string_utf8_screen(kb->display, (int16_t)(r->x + r->w / 2 - width / 2), (int16_t)(r->y + baseline), label, kb->color[DGX_DI_KEYBOARD_LABEL],
-                                    DgxOutputNormal, 1, kb->font, NULL, NULL);
+    rounded(c->s, r->x - c->ox, r->y - c->oy, r->w, r->h, kb->radius, back);
+    if (lettered) {
+        if (label_in)
+            dgx_font_string_utf8_screen(c->s, (int16_t)(lx - c->ox), (int16_t)(ly - c->oy), label, kb->color[DGX_DI_KEYBOARD_LABEL], DgxOutputNormal, 1, kb->font,
+                                        NULL, NULL);
     } else if (!key.label)
-        sign(kb->display, key.code, r->x + r->w / 2, r->y + r->h / 2, r->h, kb->color[DGX_DI_KEYBOARD_LABEL]);
-    kb->drawn[k] = pressed;
+        sign(c->s, key.code, r->x + r->w / 2 - c->ox, r->y + r->h / 2 - c->oy, r->h, kb->color[DGX_DI_KEYBOARD_LABEL]);
 }
 
 /* the baseline of the labels from the top of a key: a capital in its middle */
@@ -256,18 +287,36 @@ static int baseline(const dgx_di_keyboard_t *kb)
     return kb->key_h / 2 - top - height / 2;
 }
 
+/* the band and its keys, each as drawn[] has it, on the canvas in one batch: only its rows and keys that meet it */
+static void paint(const dgx_di_keyboard_t *kb, const canvas_t *c)
+{
+    if (!meets(c, kb->x, kb->y, kb->x + kb->w - 1, kb->y + kb->h - 1)) return;
+    const uint16_t top = kb->color[DGX_DI_KEYBOARD_BACK_TOP], bottom = kb->color[DGX_DI_KEYBOARD_BACK_BOTTOM];
+    dgx_screen_progress_up(c->s);
+    if (top == bottom) dgx_fill_rectangle(c->s, kb->x - c->ox, kb->y - c->oy, kb->w, kb->h, top);
+    else {
+        const int first = c->top > kb->y ? c->top - kb->y : 0, end = c->bottom - kb->y + 1 < kb->h ? c->bottom - kb->y + 1 : kb->h;
+        for (int i = first; i < end; ++i) dgx_fill_rectangle(c->s, kb->x - c->ox, kb->y + i - c->oy, kb->w, 1, mix(top, bottom, i, kb->h > 1 ? kb->h - 1 : 1));
+    }
+    const int b = baseline(kb);
+    for (int k = 0; k < kb->count; ++k) draw_key(kb, c, k, kb->drawn[k], b);
+    dgx_screen_progress_down(c->s);
+}
+
 void dgx_di_keyboard_draw(dgx_di_keyboard_t *kb)
 {
     if (!kb->open) return;
-    dgx_screen_t  *s = kb->display;
-    const uint16_t top = kb->color[DGX_DI_KEYBOARD_BACK_TOP], bottom = kb->color[DGX_DI_KEYBOARD_BACK_BOTTOM];
-    dgx_screen_progress_up(s);
-    if (top == bottom) dgx_fill_rectangle(s, kb->x, kb->y, kb->w, kb->h, top);
-    else
-        for (int i = 0; i < kb->h; ++i) dgx_fill_rectangle(s, kb->x, kb->y + i, kb->w, 1, mix(top, bottom, i, kb->h > 1 ? kb->h - 1 : 1));
-    const int b = baseline(kb);
-    for (int k = 0; k < kb->count; ++k) draw_key(kb, k, false, b);
-    dgx_screen_progress_down(s);
+    /* the keys let go: those held are drawn pressed by the next take */
+    memset(kb->drawn, 0, sizeof kb->drawn);
+    const canvas_t c = canvas_of(kb->display, 0, 0);
+    paint(kb, &c);
+}
+
+void dgx_di_keyboard_draw_to(const dgx_di_keyboard_t *kb, dgx_screen_t *scr, int ox, int oy)
+{
+    if (!kb->open || !scr || scr->color_bits != 16) return;
+    const canvas_t c = canvas_of(scr, ox, oy);
+    paint(kb, &c);
 }
 
 bool dgx_di_keyboard_open(dgx_di_keyboard_t *kb, dgx_screen_t *display, int width_mm, int height_mm, const uint8_t *layout, size_t size,
@@ -334,12 +383,13 @@ int dgx_di_keyboard_take(dgx_di_keyboard_t *kb, dgx_di_pointer_t *p, uint32_t no
         if (all) dgx_di_keyboard_draw(kb);
         else {
             /* the keys that changed, in one batch */
-            const int b = baseline(kb);
+            const int      b = baseline(kb);
+            const canvas_t c = canvas_of(kb->display, 0, 0);
             dgx_screen_progress_up(kb->display);
             for (int k = 0; k < kb->count; ++k) {
                 const uint8_t f       = kb->keys[k].flags;
                 const bool    pressed = (f & DGX_DI_RECT_HELD) && (f & DGX_DI_RECT_INSIDE);
-                if (pressed != (bool)kb->drawn[k]) draw_key(kb, k, pressed, b);
+                if (pressed != (bool)kb->drawn[k]) draw_key(kb, &c, k, pressed, b), kb->drawn[k] = pressed;
             }
             dgx_screen_progress_down(kb->display);
         }

@@ -26,8 +26,8 @@ extern "C" {
  * one read of it. A finger that goes down on an item is the pad's until it goes up (dgx_di_pointer_claim: never the
  * program's first finger): a button held while the finger stays within half its radius again from its middle, a cross
  * as it is drawn (on an arm that way, in a corner between two arms both), a stick by how far. An item pressed is drawn so, and the layer marks its
- * place for the owner of the display to send again (dgx_overlay_take_dirty). Called from the task that owns the
- * display, as the rest of DGX-DI.
+ * place for the owner of the display to send again (dgx_overlay_take_dirty). A mirror of the display, composed
+ * elsewhere, takes it by dgx_di_pad_draw_to(). Called from the task that owns the display, as the rest of DGX-DI.
  *
  * Its items are C (dgx_di_pad_item_t, drawn as by default: a button a circle with a rim, a sign on START, BACK, HOME
  * and a chevron on a way; a cross as the flat skin of Delta has one, a plus with a light rim on a round plate, darker,
@@ -135,6 +135,7 @@ typedef struct {
     int16_t                  down_x[DGX_DI_FINGERS], down_y[DGX_DI_FINGERS]; /* where it went down (a floating stick) */
     uint32_t                 buttons, pressed, released; /* held now; went down, went up since the last take */
     int16_t                  axes[DGX_DI_AXES];
+    uint8_t                  alpha; /* of the last dgx_di_pad_show() */
 } dgx_di_pad_t;
 
 /*
@@ -158,6 +159,17 @@ bool dgx_di_pad_show(dgx_di_pad_t *pad, dgx_screen_t *display, uint8_t alpha);
 
 /* Taken away from the display; its place there marked to be sent again. Another layer laid over it stays. */
 void dgx_di_pad_hide(dgx_di_pad_t *pad, dgx_screen_t *display);
+
+/*
+ * The pad as the display shows it now mixed over what another screen holds, the pixel (ox, oy) of the display at that
+ * screen's (0, 0), cut by it: a mirror of a display that cannot be read, composed in strips (a screenshot, a view of it
+ * elsewhere), has the pad over its picture as the display has it. The layer is mixed in as DGX mixes it into what goes
+ * to the display, by the alpha of dgx_di_pad_show() in 32 steps (DGX_VSCREEN_ALPHA mixes so), pixel for pixel the same;
+ * the screen holds the picture under it first. Only the part of the screen where the items are is touched, in one
+ * transfer: a strip of 8 rows costs those rows. Nothing of the pad changes. Not shown, or a screen not of 16 bits:
+ * nothing.
+ */
+void dgx_di_pad_draw_to(const dgx_di_pad_t *pad, dgx_screen_t *scr, int ox, int oy);
 
 /* The item at x, y of the display; -1: none. */
 int dgx_di_pad_item_at(const dgx_di_pad_t *pad, int x, int y);

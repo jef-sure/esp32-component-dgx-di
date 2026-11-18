@@ -567,13 +567,43 @@ bool dgx_di_pad_show(dgx_di_pad_t *pad, dgx_screen_t *display, uint8_t alpha)
 {
     uint16_t lut[256] = {0};
     for (int i = 1; i < pad->colors; ++i) lut[i] = pad->palette[i];
-    return pad->layer && dgx_overlay_set(display, pad->layer, 0, 0, lut, alpha);
+    if (!pad->layer || !dgx_overlay_set(display, pad->layer, 0, 0, lut, alpha)) return false;
+    pad->alpha = alpha;
+    return true;
 }
 
 void dgx_di_pad_hide(dgx_di_pad_t *pad, dgx_screen_t *display)
 {
     /* the display's overlay this pad's layer (the two share it); another's is left */
     if (pad->layer && display->overlay && display->overlay == pad->layer->overlay) dgx_overlay_clear(display);
+}
+
+void dgx_di_pad_draw_to(const dgx_di_pad_t *pad, dgx_screen_t *scr, int ox, int oy)
+{
+    /* shown: its layer lies over a display (one at most) */
+    if (!pad->layer || !pad->layer->overlay || !scr || scr->color_bits != 16 || pad->count <= 0) return;
+    /* where the items draw, all together: one transfer, no pixel mixed twice; within the layer and the screen */
+    int left = pad->width, top = pad->height, right = -1, bottom = -1;
+    for (int k = 0; k < pad->count; ++k) {
+        const int16_t *b = pad->places[k].box;
+        if (b[0] < left) left = b[0];
+        if (b[1] < top) top = b[1];
+        if (b[2] > right) right = b[2];
+        if (b[3] > bottom) bottom = b[3];
+    }
+    if (left < 0) left = 0;
+    if (top < 0) top = 0;
+    if (right >= pad->width) right = pad->width - 1;
+    if (bottom >= pad->height) bottom = pad->height - 1;
+    if (left < ox) left = ox;
+    if (top < oy) top = oy;
+    if (right > ox + scr->width - 1) right = ox + scr->width - 1;
+    if (bottom > oy + scr->height - 1) bottom = oy + scr->height - 1;
+    if (left > right || top > bottom) return;
+    /* index 0 left out, the others mixed by the alpha as the layer is; EXACT: a DSI display mixes by the processor, to
+       the last bit, as the layer is mixed */
+    dgx_vscreen8_region_to_screen16(scr, left - ox, top - oy, pad->layer, left, top, right - left + 1, bottom - top + 1, pad->palette,
+                                    DGX_VSCREEN_TRANSPARENT | DGX_VSCREEN_EXACT | DGX_VSCREEN_ALPHA(pad->alpha));
 }
 
 int dgx_di_pad_item_at(const dgx_di_pad_t *pad, int x, int y)

@@ -28,7 +28,7 @@ What it gives:
 - a driver of the Silead GSL3680, and any panel of ESP-IDF's `esp_lcd_touch`
   (GT911, FT5x06, CST816, XPT2046 and the rest).
 
-This is version 0.1.2. Its interfaces may still change.
+This is version 0.1.7. Its interfaces may still change.
 
 ## Contents
 
@@ -48,6 +48,7 @@ This is version 0.1.2. Its interfaces may still change.
   - [A pad of pictures of your own](#a-pad-of-pictures-of-your-own)
   - [A keyboard on the display](#a-keyboard-on-the-display)
   - [A keyboard layout of your own](#a-keyboard-layout-of-your-own)
+  - [A mirror of the display](#a-mirror-of-the-display)
   - [Rotate the screen](#rotate-the-screen)
   - [On the computer](#on-the-computer)
 - [Boards it was tried on](#boards-it-was-tried-on)
@@ -74,14 +75,14 @@ DGX-DI is an ESP-IDF component, published in the ESP Component Registry as
 `jef-sure/dgx-di`. Add it to a project:
 
 ```sh
-idf.py add-dependency "jef-sure/dgx-di^0.1.6"
+idf.py add-dependency "jef-sure/dgx-di^0.1.7"
 ```
 
 or put it into `main/idf_component.yml` yourself:
 
 ```yaml
 dependencies:
-  jef-sure/dgx-di: "^0.1.6"
+  jef-sure/dgx-di: "^0.1.7"
 ```
 
 It brings DGX along (`jef-sure/dgx` 0.11.0 or a later 0.11: the pad lies in
@@ -743,6 +744,48 @@ a TTF, the letters of the layout looked up), and gave it to
   needs `override_path` in `main/idf_component.yml`, or the registry's copy
   is taken and `dgx_fonts_board` is an unknown command.
 
+### A mirror of the display
+
+A display behind a bus keeps its pixels where they cannot be read, so a
+screenshot of it, or a view of it on a computer or on another display, is
+composed again: the program puts its picture into a small virtual screen,
+a strip of rows, and sends the strip out, strip after strip. The keyboard
+and the pad are not in that picture: the keyboard draws straight on the
+display, and the pad is a layer DGX mixes into what goes to the display.
+Each draws itself into the strip too, where the display has it (0.1.7):
+
+```c
+// the display's picture sent out 8 rows at a time, 16 bits a pixel
+static uint16_t rows[1024 * 8];
+dgx_screen_t   *strip = dgx_vscreen_from_array(rows, 1024, 8, 16, DgxScreenRGB);
+
+for (int y = 0; y < 600; y += 8) {
+    compose(strip, 0, y);                      // the program's picture of rows y..y+7, as it put it on the display
+    dgx_di_pad_draw_to(&pad, strip, 0, y);     // the pad over it, mixed as the display mixes it
+    dgx_di_keyboard_draw_to(&kb, strip, 0, y); // the keyboard, if it is open
+    send(rows, sizeof rows);
+}
+```
+
+- The last two arguments are the pixel of the display at the strip's
+  (0, 0); a strip may be of any size and lie anywhere, a tile in the middle
+  or past the display's edge, and what lies outside it is cut off. With
+  dgx-ui the program's picture is `dgx_ui_paint_area()` of the strip's rows.
+- As things are at that moment: the keyboard's page, its shift and the keys
+  held drawn pressed, the band opaque; the pad's items as last drawn, mixed
+  over what the strip holds by the alpha of `dgx_di_pad_show()`, in the 32
+  steps DGX mixes the layer in, so the mirror is the display pixel for pixel.
+  Neither changes anything of the keyboard or the pad: call them at any time
+  between two takes, as often as the mirror wants.
+- Only what meets the strip is drawn: the rows of the band and the keys
+  across them, the part of the layer where the items are. On the computer a
+  strip of 8 rows across the Latin keyboard of the 7" display costs 3 µs
+  against 66 µs for the keyboard whole; a strip that misses it, nothing.
+- A screen of 16 bits, as the display; another gets nothing. Not shown or
+  not open: nothing.
+- A layer the program lays over the display itself (`dgx_overlay_set()`) is
+  not DGX-DI's: the mirror of it is the program's.
+
 ### Rotate the screen
 
 Nothing to do: the pointer takes the orientation of the screen at every
@@ -1037,6 +1080,7 @@ before), `DGX_DI_RECT_LONG` (held long inside, told once),
 | `void dgx_di_pad_free(dgx_di_pad_t *pad, dgx_screen_t *display)` | Its layer and mask given back, hidden first. |
 | `void dgx_di_pad_take(dgx_di_pad_t *pad, dgx_di_pointer_t *pointer)` | The fingers of the last read taken: those gone down on an item claimed, the buttons and axes made, the items changed drawn again. |
 | `int dgx_di_pad_item_at(const dgx_di_pad_t *pad, int x, int y)` | The item at a point of the display, -1: none. |
+| `void dgx_di_pad_draw_to(const dgx_di_pad_t *pad, dgx_screen_t *scr, int ox, int oy)` | The pad as the display shows it now mixed over what another 16-bit screen holds, the display's pixel (`ox`, `oy`) at its (0, 0), cut by it: a [mirror](#a-mirror-of-the-display). Nothing when not shown. |
 
 `dgx_di_pad_item_t`: `kind` (`DGX_DI_PAD_BUTTON`, `DGX_DI_PAD_CROSS`,
 `DGX_DI_PAD_STICK`); `from_x`, `from_y` (`DGX_DI_FROM_START`,
@@ -1052,7 +1096,7 @@ layout of the pad editor as a blob, a file or a C array.
 `UP`, `DOWN`, `A`, `START`, `BACK`, `B`, `X`, `Y`, `HOME`, `LB`, `RB`, `LT`,
 `RT`, `L3`, `R3`: bits 0 to 16); `axes[DGX_DI_AXES]` (`DGX_DI_AXIS_LX`, `LY`,
 `RX`, `RY`, from -32767 to 32767; `LT`, `RT`, from 0); `places` (each item in
-pixels: `x`, `y`, `r`).
+pixels: `x`, `y`, `r`); `alpha` (of the last `dgx_di_pad_show()`).
 
 ### The keyboard
 
@@ -1063,6 +1107,7 @@ pixels: `x`, `y`, `r`).
 | `bool dgx_di_keyboard_open(dgx_di_keyboard_t *kb, dgx_screen_t *display, int width_mm, int height_mm, const uint8_t *layout, size_t size, dgx_font_t *font, const dgx_di_rect_t *field)` | The keyboard of a layout (a blob, kept) opened on the display as it stands, placed away from the field (may be `NULL`) and drawn. `false`, nothing drawn: no such blob, past the limits, does not fit, not a 16-bit display. |
 | `int dgx_di_keyboard_take(dgx_di_keyboard_t *kb, dgx_di_pointer_t *pointer, uint32_t now_ms, uint32_t *typed, int max)` | The fingers of the last read taken: those on the band claimed, keys drawn pressed, keys let go typed. The code points since the last take into `typed`, at most `max` (the rest stay); how many. |
 | `void dgx_di_keyboard_draw(dgx_di_keyboard_t *kb)` | All of it drawn again. |
+| `void dgx_di_keyboard_draw_to(const dgx_di_keyboard_t *kb, dgx_screen_t *scr, int ox, int oy)` | The keyboard as the display has it now (its page, shift, the keys pressed) drawn on another 16-bit screen, the display's pixel (`ox`, `oy`) at its (0, 0), cut by it: a [mirror](#a-mirror-of-the-display). Nothing when closed. |
 | `void dgx_di_keyboard_close(dgx_di_keyboard_t *kb)` | Closed: its band the program's again. |
 
 `dgx_di_keyboard_t`: `x`, `y`, `w`, `h` (its band); `page`, `shift`; `open`.
@@ -1150,7 +1195,10 @@ another). They check:
   chevrons, ring and brackets, at rest and held) and the chevrons of the
   buttons of a way; of blobs, the classic one as the C one pixel for pixel,
   pictures pressed and held, a knob past its well, close neighbours whole,
-  blobs not of the format refused;
+  blobs not of the format refused; the mirror: a picture composed in strips
+  with the pad mixed in the same as the display shows it through its layer,
+  pixel for pixel, of every ready layout with an item held, of several alphas
+  and in tiles;
 - the gestures: edges, swipes, a long press, one gesture a touch, in
   millimetres;
 - the keyboard, with DGX built for the host: its band and keys from
@@ -1158,7 +1206,9 @@ another). They check:
   when led out,
   erase again and again when held, shift, pages, fingers over one another
   and claimed, the band at the top over the field, blobs not of the format
-  refused, the keys drawn and pressed;
+  refused, the keys drawn and pressed; the mirror: drawn whole and in strips
+  and tiles, its labels in a font of DGX cut by them, the same pixel for pixel
+  and the same as the display, with shift, on both pages, a key held;
 - the touch of a window of DGX, where SDL2 is and DGX gives its mouse
   (0.10.10): SDL's own events pushed, no window opened; the mouse pressed on
   the window is a finger at the pixel the window shows there, the glass

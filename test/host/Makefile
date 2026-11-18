@@ -8,6 +8,8 @@ DGX    ?= $(firstword $(wildcard $(ROOT)/../../managed_components/jef-sure__dgx)
 CC     ?= gcc
 CFLAGS ?= -O1 -g -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer
 CFLAGS += -std=gnu11 -Wall -Wextra -Wno-unused-parameter -I$(ROOT)/include -I$(DGX)/include
+# the stubs of ESP-IDF for the host, as DGX gives them: its screen's header takes esp_err.h (0.11.1)
+CFLAGS += -I$(DGX)/host/stubs
 BUILD  := build
 
 # with Python, the ready layouts of the keyboard made again of their JSON and compared; with Node, the geometry of the
@@ -57,9 +59,10 @@ $(BUILD)/test_host_touch: test_host_touch.c check.h $(ROOT)/src/dgx_di_pointer.c
 
 KEYBOARD := $(ROOT)/src/dgx_di_keyboard.c $(ROOT)/src/dgx_di_keyboard_layouts.c $(ROOT)/src/dgx_di_rects.c $(ROOT)/src/dgx_di_pointer.c
 
+# its mirror drawn with labels in one of DGX's fonts
 $(BUILD)/test_keyboard: test_keyboard.c check.h $(KEYBOARD) $(ROOT)/include/dgx_di.h $(ROOT)/include/dgx_di_keyboard.h
 	mkdir -p $(BUILD)
-	$(CC) $(CFLAGS) $(DGX_FLAGS) -o $@ test_keyboard.c $(KEYBOARD) $(DGX_SRCS) -lm
+	$(CC) $(CFLAGS) $(DGX_FLAGS) -o $@ test_keyboard.c $(KEYBOARD) $(DGX)/src/fonts/DejaVuSansBook32.c $(DGX_SRCS) -lm
 
 # includes the keyboard's source (its lay() of each page): the rest of it only
 $(BUILD)/keyboard_dump: keyboard_dump.c $(KEYBOARD) $(ROOT)/include/dgx_di_keyboard.h
